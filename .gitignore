@@ -1,0 +1,27 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS Files
+.DS_Store
+Thumbs.db
+._*
+
+# Dependencies
+node_modules/
+vendor/
+
+# Build Attributes
+dist/
+build/
+*.tar
+*.gz
+*.zip
+
+# Application Specific
+balance-tracker-images.tar
+backend/finance.db
+backend/server
+*.log
+config.yaml
