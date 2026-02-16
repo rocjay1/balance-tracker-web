@@ -49,7 +49,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 		Number string
 	}
 	grouped := make(map[accountKey][]Transaction)
-	
+
 	for _, t := range txs {
 		k := accountKey{Name: t.AccountName, Number: t.AccountNumber}
 		grouped[k] = append(grouped[k], t)
@@ -154,49 +154,35 @@ func (s *Store) AddTransaction(t Transaction) error {
 // GetBalance returns the sum of amounts for the given account up to (and including) the given date.
 // date should be in "YYYY-MM-DD" format.
 func (s *Store) GetBalance(name string, accountNumber string, untilDate string) (float64, error) {
-	// Query builder approach (simple)
-	// Match either Name or Institution
-	query := `
-	SELECT COALESCE(SUM(amount), 0)
-	FROM transactions
-	WHERE (account_name = ? OR institution_name = ?) AND date <= ? AND ignored = 0
-	`
-	args := []interface{}{name, name, untilDate}
-
-	if accountNumber != "" {
-		query = `
-		SELECT COALESCE(SUM(amount), 0)
-		FROM transactions
-		WHERE (account_name = ? OR institution_name = ?) AND account_number = ? AND date <= ? AND ignored = 0
-		`
-		args = []interface{}{name, name, accountNumber, untilDate}
-	}
-
-	var balance float64
-	err := s.db.QueryRow(query, args...).Scan(&balance)
-	if err != nil {
-		return 0, err
-	}
-	return balance, nil
+	return s.getBalanceInternal(name, accountNumber, "", untilDate)
 }
 
 // GetBalanceSince returns sum of amounts > fromDate AND <= untilDate
 func (s *Store) GetBalanceSince(name string, accountNumber string, fromDate string, untilDate string) (float64, error) {
+	return s.getBalanceInternal(name, accountNumber, fromDate, untilDate)
+}
+
+func (s *Store) getBalanceInternal(name, accountNumber, fromDate, untilDate string) (float64, error) {
 	query := `
 	SELECT COALESCE(SUM(amount), 0)
 	FROM transactions
-	WHERE (account_name = ? OR institution_name = ?) AND date > ? AND date <= ? AND ignored = 0
+	WHERE (account_name = ? OR institution_name = ?) AND ignored = 0
 	`
-	// Note: name matches Name OR Institution
-	args := []interface{}{name, name, fromDate, untilDate}
+	args := []interface{}{name, name}
 
 	if accountNumber != "" {
-		query = `
-		SELECT COALESCE(SUM(amount), 0)
-		FROM transactions
-		WHERE (account_name = ? OR institution_name = ?) AND account_number = ? AND date > ? AND date <= ? AND ignored = 0
-		`
-		args = []interface{}{name, name, accountNumber, fromDate, untilDate}
+		query += " AND account_number = ?"
+		args = append(args, accountNumber)
+	}
+
+	if fromDate != "" {
+		query += " AND date > ?"
+		args = append(args, fromDate)
+	}
+
+	if untilDate != "" {
+		query += " AND date <= ?"
+		args = append(args, untilDate)
 	}
 
 	var balance float64
