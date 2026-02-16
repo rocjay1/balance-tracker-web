@@ -21,7 +21,8 @@ WORKDIR /app
 RUN apk add --no-cache tzdata
 
 COPY --from=builder /app/server .
-COPY config.yaml . 
+# Config is managed via volume mount in production
+# Check config.example.yaml for required structure
 # We don't copy finance.db because it should be in a volume
 
 EXPOSE 8080

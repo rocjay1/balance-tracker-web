@@ -4,37 +4,28 @@
 set -e
 
 # Configuration
+GHCR_USER="rocjay1"
 APP_NAME="balance-tracker"
 TAG="latest"
 PLATFORM="linux/arm64"
 
 echo "Building images for $PLATFORM..."
 
-# Build Backend
-echo "Building Backend..."
-docker buildx build --platform $PLATFORM -t "${APP_NAME}-backend:$TAG" ./backend --load
+# Build and Push Backend
+echo "Building and Pushing Backend..."
+docker buildx build --platform $PLATFORM \
+  -t "ghcr.io/$GHCR_USER/${APP_NAME}-backend:$TAG" \
+  ./backend --push
 
-# Build Frontend
-echo "Building Frontend..."
-docker buildx build --platform $PLATFORM -t "${APP_NAME}-frontend:$TAG" ./frontend --load
+# Build and Push Frontend
+echo "Building and Pushing Frontend..."
+docker buildx build --platform $PLATFORM \
+  -t "ghcr.io/$GHCR_USER/${APP_NAME}-frontend:$TAG" \
+  ./frontend --push
 
-# Save images to a tarball
-echo "Saving images to ${APP_NAME}-images.tar..."
-docker save "${APP_NAME}-backend:$TAG" "${APP_NAME}-frontend:$TAG" > "${APP_NAME}-images.tar"
-
-echo "Build complete! ${APP_NAME}-images.tar is ready."
+echo "Build and Push complete!"
 echo ""
-# Default host
-PI_HOST="raspberrypi.local"
-
-echo "Transferring files to ${PI_HOST}..."
-scp balance-tracker-images.tar docker-compose.yml .env backend/config.yaml "${PI_HOST}:~/"
-
-echo "Deploying on ${PI_HOST}..."
-base64_cmd="
-    docker load -i balance-tracker-images.tar
-    docker compose up -d
-"
-ssh "${PI_HOST}" "${base64_cmd}"
-
-echo "App deployed on ${PI_HOST}!"
+echo "Deployment is now managed via the infrastructure repository:"
+echo "  /Users/roccodavino/Source/rocjay1-infrastucture/balance-tracker/deploy.sh"
+echo ""
+echo "Watchtower will also automatically pick up these changes on the Pi within 5 minutes."
