@@ -37,16 +37,20 @@ func main() {
 		log.Fatalf("Error loading config: %v", err)
 	}
 
-	// 3. Initialize Server Handlers
-	srvHandler := api.NewServer(store, cfg)
+	// 3. Initialize Mailer
+	mail := mailer.New(cfg.SMTP, cfg.SMTP.Password)
+
+	// 4. Initialize Server Handlers
+	srvHandler := api.NewServer(store, cfg, mail)
 	mux := http.NewServeMux()
 
 	// Register Routes
 	mux.HandleFunc("/api/health", srvHandler.HealthHandler)
 	mux.HandleFunc("/api/status", middleware.AllowCors(srvHandler.StatusHandler))
 	mux.HandleFunc("/api/upload", middleware.AllowCors(srvHandler.UploadHandler))
+	mux.HandleFunc("/api/alerts/test", middleware.AllowCors(srvHandler.TestAlertHandler))
 
-	// 4. Create HTTP Server
+	// 5. Create HTTP Server
 	srv := &http.Server{
 		Addr:         ":8080",
 		Handler:      mux,
@@ -54,9 +58,6 @@ func main() {
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
-
-	// 5. Initialize Mailer
-	mail := mailer.New(cfg.SMTP, cfg.SMTP.Password)
 
 	// 6. Start Alert Scheduler
 	go scheduler.StartAlertScheduler(store, cfg, mail)

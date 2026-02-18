@@ -25,12 +25,12 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 	// We need the *last* statement date to know what the statement balance is.
 	// If StatementDay is 20, and today is Feb 12, last statement was Jan 20.
 	// If today is Feb 21, last statement was Feb 20.
-	
+
 	year, month, _ := refTime.Date()
-	
+
 	// Construct potential statement date for this month
 	thisMonthStatement := mkDate(year, month, card.StatementDay)
-	
+
 	var lastStatementDate time.Time
 	if refTime.After(thisMonthStatement) || refTime.Equal(thisMonthStatement) {
 		lastStatementDate = thisMonthStatement
@@ -53,7 +53,7 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 
 	// 2. Query Balances
 	// If StartingBalance is set, we need to calculate: StartingBalance + Sum(trans > StartingDate AND trans <= queryDate)
-	
+
 	getBalance := func(until string) (float64, error) {
 		bal := 0.0
 		fromDate := "0000-01-01" // Default start of time
@@ -68,7 +68,7 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		// Let's modify GetBalance or add GetBalanceSince.
 		// Actually, Store.GetBalance is: WHERE account_name = ? AND date <= ?
 		// If we want range: WHERE ... AND date > fromDate AND date <= until
-		
+
 		dbBal, err := s.GetBalanceSince(card.Name, card.AccountNumber, fromDate, until)
 		if err != nil {
 			return 0, err

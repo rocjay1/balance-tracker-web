@@ -9,22 +9,58 @@ import (
 	"os"
 	"time"
 
+	"github.com/roccodavino/balance-tracker-web/backend/internal/alerts"
 	"github.com/roccodavino/balance-tracker-web/backend/internal/calculator"
 	"github.com/roccodavino/balance-tracker-web/backend/internal/config"
 	"github.com/roccodavino/balance-tracker-web/backend/internal/csv"
+	"github.com/roccodavino/balance-tracker-web/backend/internal/mailer"
 	"github.com/roccodavino/balance-tracker-web/backend/internal/store"
 )
 
 type Server struct {
 	Store  *store.Store
 	Config *config.Config
+	Mailer *mailer.Mailer
 }
 
-func NewServer(s *store.Store, cfg *config.Config) *Server {
+func NewServer(s *store.Store, cfg *config.Config, m *mailer.Mailer) *Server {
 	return &Server{
 		Store:  s,
 		Config: cfg,
+		Mailer: m,
 	}
+}
+
+func (s *Server) TestAlertHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	dateStr := r.URL.Query().Get("date")
+	var refTime time.Time
+	if dateStr != "" {
+		loc, err := time.LoadLocation(s.Config.Timezone)
+		if err != nil {
+			log.Printf("Error loading timezone %s: %v. Defaulting to UTC.", s.Config.Timezone, err)
+			loc = time.UTC
+		}
+		parsedDate, err := time.ParseInLocation("2006-01-02", dateStr, loc)
+		if err != nil {
+			http.Error(w, "Invalid date format. Use YYYY-MM-DD", http.StatusBadRequest)
+			return
+		}
+		refTime = parsedDate
+		log.Printf("Manual alert check triggered for specific date: %s (in %s)", dateStr, loc)
+	} else {
+		log.Println("Manual alert check triggered via API")
+	}
+
+	force := r.URL.Query().Get("force") == "true"
+	alerts.CheckAndSendAlerts(s.Store, s.Config, s.Mailer, refTime, force)
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Alert check triggered"))
 }
 
 func (s *Server) HealthHandler(w http.ResponseWriter, r *http.Request) {

@@ -22,7 +22,7 @@ func New(cfg config.SMTPConfig, password string) *Mailer {
 
 func (m *Mailer) Send(to []string, subject, body string) error {
 	auth := smtp.PlainAuth("", m.cfg.User, m.pwd, m.cfg.Host)
-	
+
 	msg := fmt.Sprintf("From: %s\r\n", m.cfg.User)
 	msg += fmt.Sprintf("To: %s\r\n", strings.Join(to, ","))
 	msg += fmt.Sprintf("Subject: %s\r\n", subject)

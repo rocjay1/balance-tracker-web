@@ -8,9 +8,11 @@ import (
 )
 
 type Config struct {
-	Subscribers []string     `yaml:"subscribers"`
-	Cards       []CardConfig `yaml:"cards"`
-	SMTP        SMTPConfig   `yaml:"smtp"`
+	Subscribers        []string     `yaml:"subscribers"`
+	AlertDaysBeforeDue int          `yaml:"alert_days_before_due"`
+	Cards              []CardConfig `yaml:"cards"`
+	SMTP               SMTPConfig   `yaml:"smtp"`
+	Timezone           string       `yaml:"timezone"`
 }
 
 type CardConfig struct {
@@ -39,6 +41,14 @@ func Load(path string) (*Config, error) {
 	var cfg Config
 	if err := yaml.Unmarshal(data, &cfg); err != nil {
 		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	if cfg.Timezone == "" {
+		cfg.Timezone = "America/Chicago"
+	}
+
+	if cfg.AlertDaysBeforeDue == 0 {
+		cfg.AlertDaysBeforeDue = 3
 	}
 
 	return &cfg, nil
