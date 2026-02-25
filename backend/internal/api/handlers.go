@@ -104,6 +104,8 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	log.Printf("Status check returned %d cards", len(statuses))
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(statuses)
 }
@@ -148,6 +150,8 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmt.Sprintf("Error syncing transactions: %v", err), http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("Uploaded %d transactions successfully", len(transactions))
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{

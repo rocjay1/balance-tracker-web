@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -15,6 +16,9 @@ import (
 )
 
 func main() {
+	// Configure structured JSON logging
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	// 1. Load Store
 	dbPath := "finance.db"
 	if envDB := os.Getenv("DB_PATH"); envDB != "" {
@@ -50,10 +54,10 @@ func main() {
 	mux.HandleFunc("/api/upload", middleware.AllowCors(srvHandler.UploadHandler))
 	mux.HandleFunc("/api/alerts/test", middleware.AllowCors(srvHandler.TestAlertHandler))
 
-	// 5. Create HTTP Server
+	// 5. Create HTTP Server with request logging
 	srv := &http.Server{
 		Addr:         ":8080",
-		Handler:      mux,
+		Handler:      middleware.RequestLogger(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -62,7 +66,7 @@ func main() {
 	// 6. Start Alert Scheduler
 	go scheduler.StartAlertScheduler(store, cfg, mail)
 
-	log.Println("Server starting on :8080...")
+	slog.Info("server starting", "addr", ":8080")
 	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Server failed: %v", err)
 	}
