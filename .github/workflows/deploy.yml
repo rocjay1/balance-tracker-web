@@ -7,8 +7,8 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME_BACKEND: rocjay1/balance-tracker-backend
-  IMAGE_NAME_FRONTEND: rocjay1/balance-tracker-frontend
+  IMAGE_NAME_BACKEND: ${{ github.repository }}-backend
+  IMAGE_NAME_FRONTEND: ${{ github.repository }}-frontend
 
 jobs:
   build-and-push:
@@ -37,7 +37,7 @@ jobs:
           context: ./backend
           platforms: linux/arm64
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_BACKEND }}:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}-backend:latest
 
       - name: Build and push Frontend
         uses: docker/build-push-action@v6
@@ -45,4 +45,4 @@ jobs:
           context: ./frontend
           platforms: linux/arm64
           push: true
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME_FRONTEND }}:latest
+          tags: ${{ env.REGISTRY }}/${{ github.repository }}-frontend:latest
