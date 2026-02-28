@@ -102,7 +102,7 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	slog.Info("status check complete", "cards", len(statuses))
+	slog.Info("Status check complete", "cards", len(statuses))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(statuses)
