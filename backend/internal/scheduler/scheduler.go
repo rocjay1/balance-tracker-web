@@ -1,3 +1,4 @@
+// Package scheduler runs periodic background tasks such as alert checks.
 package scheduler
 
 import (
@@ -10,6 +11,8 @@ import (
 	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
+// StartAlertScheduler runs CheckAndSendAlerts daily at 7:00 AM in the configured timezone.
+// It blocks indefinitely and should be called in a goroutine.
 func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
@@ -32,7 +35,7 @@ func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 	for {
 		<-timer.C
 
-		slog.Info("Running daily alert check...")
+		slog.Info("running daily alert check")
 		alerts.CheckAndSendAlerts(s, cfg, m, time.Time{}, false)
 
 		// Reset for next day

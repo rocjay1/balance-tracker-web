@@ -1,3 +1,4 @@
+// Package store provides SQLite-backed persistence for financial transactions.
 package store
 
 import (
@@ -9,10 +10,12 @@ import (
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
+// Store wraps a SQLite database for storing and querying transactions.
 type Store struct {
 	db *sql.DB
 }
 
+// New opens or creates a SQLite database at dbPath, runs migrations, and returns a Store.
 func New(dbPath string) (*Store, error) {
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 		return nil, fmt.Errorf("failed to create db directory: %w", err)
@@ -125,10 +128,12 @@ func (s *Store) migrate() error {
 	return nil
 }
 
+// Close closes the underlying database connection.
 func (s *Store) Close() error {
 	return s.db.Close()
 }
 
+// Transaction represents a single financial transaction record.
 type Transaction struct {
 	Date            string
 	AccountName     string
@@ -141,6 +146,7 @@ type Transaction struct {
 	Hash            string
 }
 
+// AddTransaction inserts a single transaction, ignoring duplicates by hash.
 func (s *Store) AddTransaction(t Transaction) error {
 	query := `
 	INSERT OR IGNORE INTO transactions (date, account_name, institution_name, account_number, amount, description, category, ignored, hash)
@@ -167,7 +173,7 @@ func (s *Store) getBalanceInternal(name, accountNumber, fromDate, untilDate stri
 	FROM transactions
 	WHERE (account_name = ? OR institution_name = ?) AND ignored = 0
 	`
-	args := []interface{}{name, name}
+	args := []any{name, name}
 
 	if accountNumber != "" {
 		query += " AND account_number = ?"

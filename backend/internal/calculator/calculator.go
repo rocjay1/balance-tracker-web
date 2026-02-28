@@ -1,3 +1,4 @@
+// Package calculator computes credit card payment amounts based on balances and targets.
 package calculator
 
 import (
@@ -8,6 +9,7 @@ import (
 	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
+// PaymentResult holds the computed payment details for a single credit card.
 type PaymentResult struct {
 	CardName         string
 	StatementBalance float64

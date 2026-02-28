@@ -49,11 +49,13 @@ func main() {
 	srvHandler := api.NewServer(store, cfg, mail)
 	mux := http.NewServeMux()
 
-	// Register Routes
 	mux.HandleFunc("/api/health", srvHandler.HealthHandler)
-	mux.HandleFunc("/api/status", middleware.AllowCors(srvHandler.StatusHandler))
-	mux.HandleFunc("/api/upload", middleware.AllowCors(srvHandler.UploadHandler))
-	mux.HandleFunc("/api/alerts/test", middleware.AllowCors(srvHandler.TestAlertHandler))
+	mux.HandleFunc("GET /api/status", middleware.AllowCors(srvHandler.StatusHandler))
+	mux.HandleFunc("POST /api/upload", middleware.AllowCors(srvHandler.UploadHandler))
+	mux.HandleFunc("POST /api/alerts/test", middleware.AllowCors(srvHandler.TestAlertHandler))
+	mux.HandleFunc("OPTIONS /api/status", middleware.AllowCors(srvHandler.HealthHandler))
+	mux.HandleFunc("OPTIONS /api/upload", middleware.AllowCors(srvHandler.HealthHandler))
+	mux.HandleFunc("OPTIONS /api/alerts/test", middleware.AllowCors(srvHandler.HealthHandler))
 
 	// 5. Create HTTP Server with request logging
 	srv := &http.Server{

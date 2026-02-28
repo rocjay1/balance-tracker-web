@@ -1,3 +1,4 @@
+// Package config loads and validates application configuration from YAML files.
 package config
 
 import (
@@ -7,6 +8,7 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Config holds the top-level application configuration.
 type Config struct {
 	Subscribers        []string     `yaml:"subscribers"`
 	AlertDaysBeforeDue int          `yaml:"alert_days_before_due"`
@@ -15,6 +17,7 @@ type Config struct {
 	Timezone           string       `yaml:"timezone"`
 }
 
+// CardConfig describes a single credit card to track.
 type CardConfig struct {
 	Name            string  `yaml:"name"`
 	AccountNumber   string  `yaml:"account_number"` // Optional, for disambiguation
@@ -25,6 +28,7 @@ type CardConfig struct {
 	StartingDate    string  `yaml:"starting_date"`    // YYYY-MM-DD
 }
 
+// SMTPConfig holds SMTP server credentials for outbound email.
 type SMTPConfig struct {
 	Host     string `yaml:"host"`
 	Port     int    `yaml:"port"`
@@ -32,6 +36,7 @@ type SMTPConfig struct {
 	Password string `yaml:"password"`
 }
 
+// Load reads and parses the YAML configuration file at the given path.
 func Load(path string) (*Config, error) {
 	data, err := os.ReadFile(path)
 	if err != nil {

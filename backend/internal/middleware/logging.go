@@ -17,7 +17,8 @@ func (w *statusWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
-// RequestLogger logs every HTTP request with method, path, status, duration, and remote address
+// RequestLogger wraps an http.Handler with structured request logging,
+// recording method, path, status code, duration, and remote address.
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

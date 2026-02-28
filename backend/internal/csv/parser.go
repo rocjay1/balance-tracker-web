@@ -1,3 +1,4 @@
+// Package csv parses exported financial CSV files into transaction records.
 package csv
 
 import (

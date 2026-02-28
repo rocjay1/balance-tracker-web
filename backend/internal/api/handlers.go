@@ -1,3 +1,4 @@
+// Package api provides HTTP handlers for the balance tracker API.
 package api
 
 import (
@@ -17,32 +18,31 @@ import (
 	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
+// Server holds dependencies for the API handlers.
 type Server struct {
-	Store  *store.Store
-	Config *config.Config
-	Mailer *mailer.Mailer
+	store  *store.Store
+	config *config.Config
+	mailer *mailer.Mailer
 }
 
+// NewServer creates a Server with the given dependencies.
 func NewServer(s *store.Store, cfg *config.Config, m *mailer.Mailer) *Server {
 	return &Server{
-		Store:  s,
-		Config: cfg,
-		Mailer: m,
+		store:  s,
+		config: cfg,
+		mailer: m,
 	}
 }
 
+// TestAlertHandler triggers a manual alert check. Accepts optional "date" (YYYY-MM-DD)
+// and "force" query parameters.
 func (s *Server) TestAlertHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	dateStr := r.URL.Query().Get("date")
 	var refTime time.Time
 	if dateStr != "" {
-		loc, err := time.LoadLocation(s.Config.Timezone)
+		loc, err := time.LoadLocation(s.config.Timezone)
 		if err != nil {
-			slog.Error("Error loading timezone, defaulting to UTC", "timezone", s.Config.Timezone, "error", err)
+			slog.Error("Error loading timezone, defaulting to UTC", "timezone", s.config.Timezone, "error", err)
 			loc = time.UTC
 		}
 		parsedDate, err := time.ParseInLocation("2006-01-02", dateStr, loc)
@@ -57,17 +57,19 @@ func (s *Server) TestAlertHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	force := r.URL.Query().Get("force") == "true"
-	alerts.CheckAndSendAlerts(s.Store, s.Config, s.Mailer, refTime, force)
+	alerts.CheckAndSendAlerts(s.store, s.config, s.mailer, refTime, force)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Alert check triggered"))
 }
 
+// HealthHandler returns a simple 200 OK for liveness probes.
 func (s *Server) HealthHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
 }
 
+// CardStatus represents the computed financial status of a single credit card.
 type CardStatus struct {
 	CardName         string  `json:"card_name"`
 	AccountNumber    string  `json:"account_number"`
@@ -79,15 +81,11 @@ type CardStatus struct {
 	DueDate          string  `json:"due_date"`
 }
 
+// StatusHandler returns the computed financial status for all configured cards.
 func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	var statuses []CardStatus
-	for _, card := range s.Config.Cards {
-		res, err := calculator.CalculatePayment(s.Store, card, time.Now())
+	for _, card := range s.config.Cards {
+		res, err := calculator.CalculatePayment(s.store, card, time.Now())
 		if err != nil {
 			slog.Error("Error calculating payment for card", "card", card.Name, "error", err)
 			continue
@@ -104,18 +102,14 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	slog.Info(fmt.Sprintf("Status check returned %d cards", len(statuses)))
+	slog.Info("status check complete", "cards", len(statuses))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(statuses)
 }
 
+// UploadHandler accepts a CSV file upload, parses it, and syncs the transactions to the store.
 func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
 	r.Body = http.MaxBytesReader(w, r.Body, 10<<20) // 10MB
 
 	file, _, err := r.FormFile("file")
@@ -145,15 +139,15 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.Store.SyncTransactions(transactions); err != nil {
+	if err := s.store.SyncTransactions(transactions); err != nil {
 		http.Error(w, fmt.Sprintf("Error syncing transactions: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	slog.Info(fmt.Sprintf("Uploaded %d transactions successfully", len(transactions)))
+	slog.Info("upload complete", "transactions", len(transactions))
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	json.NewEncoder(w).Encode(map[string]any{
 		"message": fmt.Sprintf("Processed %d transactions", len(transactions)),
 		"count":   len(transactions),
 	})

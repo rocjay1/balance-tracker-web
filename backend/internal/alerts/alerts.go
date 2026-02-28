@@ -1,3 +1,4 @@
+// Package alerts checks card payment schedules and sends email notifications.
 package alerts
 
 import (
