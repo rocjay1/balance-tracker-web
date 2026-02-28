@@ -25,7 +25,7 @@ docker buildx build --platform $PLATFORM \
 
 echo "Build and Push complete!"
 echo ""
-echo "Deployment is now managed via the infrastructure repository:"
-echo "  /Users/roccodavino/Source/rocjay1-infrastucture/balance-tracker/deploy.sh"
+echo "Deploy the changes using Ansible:"
+echo "  ansible-playbook -i ../rocjay1-infrastucture/balance-tracker/ansible/hosts.ini ../rocjay1-infrastucture/balance-tracker/ansible/deploy_balance_tracker.yml --vault-password-file ../rocjay1-infrastucture/balance-tracker/ansible/.vault_pass"
 echo ""
 echo "Watchtower will also automatically pick up these changes on the Pi within 5 minutes."
