@@ -9,12 +9,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/roccodavino/balance-tracker-web/backend/internal/alerts"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/calculator"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/config"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/csv"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/mailer"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/store"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/alerts"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/calculator"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/config"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/csv"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/mailer"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
 type Server struct {
@@ -116,7 +116,6 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// limit upload size
 	r.Body = http.MaxBytesReader(w, r.Body, 10<<20) // 10MB
 
 	file, _, err := r.FormFile("file")
@@ -132,7 +131,7 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create temp file", http.StatusInternalServerError)
 		return
 	}
-	defer os.Remove(tempFile.Name()) // clean up
+	defer os.Remove(tempFile.Name())
 
 	if _, err := io.Copy(tempFile, file); err != nil {
 		http.Error(w, "Failed to write temp file", http.StatusInternalServerError)

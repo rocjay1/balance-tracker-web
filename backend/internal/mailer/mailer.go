@@ -5,7 +5,7 @@ import (
 	"net/smtp"
 	"strings"
 
-	"github.com/roccodavino/balance-tracker-web/backend/internal/config"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/config"
 )
 
 type Mailer struct {

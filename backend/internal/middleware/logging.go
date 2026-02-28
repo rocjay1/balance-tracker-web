@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-// statusWriter wraps http.ResponseWriter to capture the status code.
+// statusWriter wraps http.ResponseWriter to capture the status code
 type statusWriter struct {
 	http.ResponseWriter
 	status int
@@ -17,7 +17,7 @@ func (w *statusWriter) WriteHeader(code int) {
 	w.ResponseWriter.WriteHeader(code)
 }
 
-// RequestLogger logs every HTTP request with method, path, status, duration, and remote address.
+// RequestLogger logs every HTTP request with method, path, status, duration, and remote address
 func RequestLogger(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()

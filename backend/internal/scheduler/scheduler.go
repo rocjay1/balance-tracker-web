@@ -4,10 +4,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/roccodavino/balance-tracker-web/backend/internal/alerts"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/config"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/mailer"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/store"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/alerts"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/config"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/mailer"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
 func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {

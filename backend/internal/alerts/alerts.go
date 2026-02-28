@@ -5,13 +5,13 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/roccodavino/balance-tracker-web/backend/internal/calculator"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/config"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/mailer"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/store"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/calculator"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/config"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/mailer"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
-// CheckAndSendAlerts checks if any card has a payment due in exactly 3 days.
+// CheckAndSendAlerts checks if any card has a payment due in exactly 3 days
 func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, refTime time.Time, force bool) {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
@@ -23,11 +23,8 @@ func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, re
 		refTime = time.Now()
 	}
 	now := refTime.In(loc)
-	// Target date is configured days from now
 	targetDate := now.AddDate(0, 0, cfg.AlertDaysBeforeDue)
 
-	// Normalize to start of day for comparison if needed, but calculator returns a full Time.
-	// Actually better: Check if DueDate is strictly "Same Day" as targetDate.
 	slog.Info("Checking alerts", "now", now, "target_date", targetDate)
 
 	for _, card := range cfg.Cards {
@@ -40,8 +37,7 @@ func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, re
 		isDueOnTargetDate := isSameDay(res.DueDate, targetDate)
 		isPaymentNeeded := res.PaymentNeeded > 1.0
 
-		// Check if Res.DueDate matches the calculated target alert date
-		if isDueOnTargetDate && (isPaymentNeeded || force) { // Alert only if > $1 needed? Avoiding spam for cents.
+		if isDueOnTargetDate && (isPaymentNeeded || force) {
 			slog.Info("Alert: Payment due", "card", card.Name, "due_date", res.DueDate.Format("2006-01-02"), "amount", res.PaymentNeeded)
 
 			subject := fmt.Sprintf("Payment Alert: %s Due Soon", card.Name)

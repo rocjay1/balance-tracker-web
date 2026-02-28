@@ -14,7 +14,6 @@ type Store struct {
 }
 
 func New(dbPath string) (*Store, error) {
-	// Ensure directory exists
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
 		return nil, fmt.Errorf("failed to create db directory: %w", err)
 	}
@@ -36,8 +35,8 @@ func New(dbPath string) (*Store, error) {
 	return s, nil
 }
 
-// SyncTransactions atomically replaces transactions for the given account within the date range of the new transactions.
-// This handles updates (Pending -> Posted) and deletions (Pre-auths dropping off).
+// SyncTransactions atomically replaces transactions for the given account within the date range of the new transactions
+// This handles updates (Pending -> Posted) and deletions (Pre-auths dropping off)
 func (s *Store) SyncTransactions(txs []Transaction) error {
 	if len(txs) == 0 {
 		return nil
@@ -76,7 +75,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 		}
 
 		// Delete existing in range
-		// We delete based on AccountName and AccountNumber as that's how we group.
+		// We delete based on AccountName and AccountNumber as that's how we group
 		delQuery := `
 		DELETE FROM transactions 
 		WHERE account_name = ? AND account_number = ? AND date >= ? AND date <= ?
@@ -151,8 +150,8 @@ func (s *Store) AddTransaction(t Transaction) error {
 	return err
 }
 
-// GetBalance returns the sum of amounts for the given account up to (and including) the given date.
-// date should be in "YYYY-MM-DD" format.
+// GetBalance returns the sum of amounts for the given account up to (and including) the given date
+// Date should be in "YYYY-MM-DD" format
 func (s *Store) GetBalance(name string, accountNumber string, untilDate string) (float64, error) {
 	return s.getBalanceInternal(name, accountNumber, "", untilDate)
 }

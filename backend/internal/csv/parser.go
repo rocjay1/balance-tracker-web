@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/roccodavino/balance-tracker-web/backend/internal/store"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
-// Parse reads the CSV file and returns a list of transactions.
+// Parse reads the CSV file and returns a list of transactions
 func Parse(path string) ([]store.Transaction, error) {
 	f, err := os.Open(path)
 	if err != nil {
@@ -34,7 +34,7 @@ func Parse(path string) ([]store.Transaction, error) {
 	}
 
 	var transactions []store.Transaction
-	lineNum := 1 // Header is 0, but usually 1-indexed for humans, so let's say data starts at line 2
+	lineNum := 1
 
 	for {
 		record, err := r.Read()
@@ -57,8 +57,6 @@ func Parse(path string) ([]store.Transaction, error) {
 		amountStr := get("Amount")
 		amount, err := strconv.ParseFloat(amountStr, 64)
 		if err != nil {
-			// Skip or log error? For now, let's skip invalid amounts but maybe warn.
-			// Ideally we return error or log it.
 			continue
 		}
 
@@ -77,9 +75,6 @@ func Parse(path string) ([]store.Transaction, error) {
 
 		// Generate Hash
 		// Hash = SHA256(Date + AccountNumber + Amount + Description)
-		// This combination should be unique enough for a single transaction.
-		// Note: If description changes (e.g. pending -> posted), this will be treated as new.
-		// Detailed deduplication might require fuzzy matching, but hashing is the requested MVP approach.
 		hashInput := fmt.Sprintf("%s|%s|%.2f|%s", t.Date, t.AccountNumber, t.Amount, t.Description)
 		hash := sha256.Sum256([]byte(hashInput))
 		t.Hash = fmt.Sprintf("%x", hash)

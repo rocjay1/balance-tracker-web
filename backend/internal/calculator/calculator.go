@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/roccodavino/balance-tracker-web/backend/internal/config"
-	"github.com/roccodavino/balance-tracker-web/backend/internal/store"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/config"
+	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
 type PaymentResult struct {
@@ -18,13 +18,11 @@ type PaymentResult struct {
 	DueDate          time.Time
 }
 
-// CalculatePayment determines the payment needed for a card to maintain target utilization.
-// refTime is mostly for testing, pass time.Now() normally.
+// CalculatePayment determines the payment needed for a card to maintain target utilization
 func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time) (*PaymentResult, error) {
 	// 1. Determine dates
 	// We need the *last* statement date to know what the statement balance is.
 	// If StatementDay is 20, and today is Feb 12, last statement was Jan 20.
-	// If today is Feb 21, last statement was Feb 20.
 
 	year, month, _ := refTime.Date()
 
@@ -38,12 +36,6 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		// Go back to previous month
 		lastStatementDate = thisMonthStatement.AddDate(0, -1, 0)
 		// Handle month rolling edge cases (e.g. if StatementDay is 31 and prev month is Feb)
-		// For simplicity, we assume StatementDay exists, or we clamp.
-		// Detailed logic would use standard libs to normalize "Jan 31 - 1 month" -> "Dec 31" vs "Feb 28"
-		// time.AddDate normalizes, so (March 31).AddDate(0, -1, 0) -> March 3? No, it's safer to reconstruct.
-		// Let's rely on mkDate clamping if needed, or just basic day setting.
-		// Actually time.Date normalizes: October 32 -> November 1. This isn't what we want for "last month".
-		// Simple approach: Set day to 1, subtract month, then set day back to StatementDay (or max for that month).
 		prevMonth := time.Date(year, month-1, 1, 0, 0, 0, 0, time.UTC)
 		lastStatementDate = mkDate(prevMonth.Year(), prevMonth.Month(), card.StatementDay)
 	}
@@ -62,12 +54,6 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 			fromDate = card.StartingDate
 			bal = card.StartingBalance
 		}
-
-		// We need a store method that supports a date range or "since"
-		// Current GetBalance is "until".
-		// Let's modify GetBalance or add GetBalanceSince.
-		// Actually, Store.GetBalance is: WHERE account_name = ? AND date <= ?
-		// If we want range: WHERE ... AND date > fromDate AND date <= until
 
 		dbBal, err := s.GetBalanceSince(card.Name, card.AccountNumber, fromDate, until)
 		if err != nil {
@@ -95,14 +81,9 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		paymentNeeded = 0
 	}
 
-	// Calculate Due Date (usually based on Statement Day + gap, but strictly we have a "Due Day" config)
-	// We need the Due Date *following* the reference time?
-	// The prompt says: "3 days before a card's payment due date, I want..."
-	// So we need to find the NEXT occurrence of DueDay.
 	dueDate := mkDate(year, month, card.DueDay)
 	if dueDate.Before(refTime) {
 		dueDate = dueDate.AddDate(0, 1, 0)
-		// re-clamp due date for next month
 		dueDate = mkDate(dueDate.Year(), dueDate.Month(), card.DueDay)
 	}
 
@@ -118,10 +99,9 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 }
 
 func mkDate(y int, m time.Month, d int) time.Time {
-	// Handle invalid days (e.g. Feb 30) by clamping to end of month?
-	// Simplest: Time.Date normalizes, so Feb 30 becomes Mar 2.
-	// But credit cards usually stick to "last day" if day doesn't exist.
-	// Let's implement clamping.
+	// Handle invalid days (e.g. Feb 30)
+	// Simplest: Time.Date normalizes, so Feb 30 becomes Mar 2
+	// But credit cards usually stick to "last day" if day doesn't exist
 	t := time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC) // Last day of month m
 	if d > t.Day() {
 		d = t.Day()

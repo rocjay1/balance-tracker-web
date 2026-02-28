@@ -1,6 +1,6 @@
-module github.com/roccodavino/balance-tracker-web/backend
+module github.com/rocjay1/balance-tracker-web/backend
 
-go 1.25.0
+go 1.26.0
 
 require (
 	gopkg.in/yaml.v3 v3.0.1
