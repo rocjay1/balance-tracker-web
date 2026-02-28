@@ -1,7 +1,6 @@
 package main
 
 import (
-	"log"
 	"log/slog"
 	"net/http"
 	"os"
@@ -27,7 +26,8 @@ func main() {
 
 	store, err := store.New(dbPath)
 	if err != nil {
-		log.Fatalf("Error opening store: %v", err)
+		slog.Error("Error opening store", "error", err)
+		os.Exit(1)
 	}
 	defer store.Close()
 
@@ -38,7 +38,8 @@ func main() {
 	}
 	cfg, err := config.Load(cfgPath)
 	if err != nil {
-		log.Fatalf("Error loading config: %v", err)
+		slog.Error("Error loading config", "error", err)
+		os.Exit(1)
 	}
 
 	// 3. Initialize Mailer
@@ -68,6 +69,7 @@ func main() {
 
 	slog.Info("server starting", "addr", ":8080")
 	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf("Server failed: %v", err)
+		slog.Error("Server failed", "error", err)
+		os.Exit(1)
 	}
 }

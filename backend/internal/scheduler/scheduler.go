@@ -1,7 +1,7 @@
 package scheduler
 
 import (
-	"log"
+	"log/slog"
 	"time"
 
 	"github.com/roccodavino/balance-tracker-web/backend/internal/alerts"
@@ -11,10 +11,9 @@ import (
 )
 
 func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
-	// Load configured timezone
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
-		log.Printf("Error loading timezone %s: %v. Defaulting to UTC.", cfg.Timezone, err)
+		slog.Error("Error loading timezone, defaulting to UTC", "timezone", cfg.Timezone, "error", err)
 		loc = time.UTC
 	}
 
@@ -28,12 +27,12 @@ func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 	timer := time.NewTimer(time.Until(nextRun))
 	defer timer.Stop()
 
-	log.Printf("Alert scheduler started. Timezone: %s. Next run at: %v", loc, nextRun)
+	slog.Info("Alert scheduler started", "timezone", loc.String(), "next_run", nextRun)
 
 	for {
 		<-timer.C
 
-		log.Println("Running daily alert check...")
+		slog.Info("Running daily alert check...")
 		alerts.CheckAndSendAlerts(s, cfg, m, time.Time{}, false)
 
 		// Reset for next day

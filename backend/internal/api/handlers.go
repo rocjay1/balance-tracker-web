@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"time"
@@ -42,7 +42,7 @@ func (s *Server) TestAlertHandler(w http.ResponseWriter, r *http.Request) {
 	if dateStr != "" {
 		loc, err := time.LoadLocation(s.Config.Timezone)
 		if err != nil {
-			log.Printf("Error loading timezone %s: %v. Defaulting to UTC.", s.Config.Timezone, err)
+			slog.Error("Error loading timezone, defaulting to UTC", "timezone", s.Config.Timezone, "error", err)
 			loc = time.UTC
 		}
 		parsedDate, err := time.ParseInLocation("2006-01-02", dateStr, loc)
@@ -51,9 +51,9 @@ func (s *Server) TestAlertHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		refTime = parsedDate
-		log.Printf("Manual alert check triggered for specific date: %s (in %s)", dateStr, loc)
+		slog.Info("Manual alert check triggered for specific date", "date", dateStr, "timezone", loc.String())
 	} else {
-		log.Println("Manual alert check triggered via API")
+		slog.Info("Manual alert check triggered via API")
 	}
 
 	force := r.URL.Query().Get("force") == "true"
@@ -89,7 +89,7 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 	for _, card := range s.Config.Cards {
 		res, err := calculator.CalculatePayment(s.Store, card, time.Now())
 		if err != nil {
-			log.Printf("Error calculating for %s: %v", card.Name, err)
+			slog.Error("Error calculating payment for card", "card", card.Name, "error", err)
 			continue
 		}
 		statuses = append(statuses, CardStatus{
@@ -104,7 +104,7 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	log.Printf("Status check returned %d cards", len(statuses))
+	slog.Info("Status check returned cards", "count", len(statuses))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(statuses)
@@ -151,7 +151,7 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Uploaded %d transactions successfully", len(transactions))
+	slog.Info("Uploaded transactions successfully", "count", len(transactions))
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
