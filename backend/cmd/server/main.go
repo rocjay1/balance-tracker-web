@@ -67,7 +67,7 @@ func main() {
 	// 6. Start Alert Scheduler
 	go scheduler.StartAlertScheduler(store, cfg, mail)
 
-	slog.Info("server starting", "addr", ":8080")
+	slog.Info("Server starting", "addr", ":8080")
 	if err := srv.ListenAndServe(); err != nil {
 		slog.Error("Server failed", "error", err)
 		os.Exit(1)
