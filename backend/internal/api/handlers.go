@@ -104,7 +104,7 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	slog.Info("Status check returned cards", "count", len(statuses))
+	slog.Info(fmt.Sprintf("Status check returned %d cards", len(statuses)))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(statuses)
@@ -151,7 +151,7 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("Uploaded transactions successfully", "count", len(transactions))
+	slog.Info(fmt.Sprintf("Uploaded %d transactions successfully", len(transactions)))
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]interface{}{
