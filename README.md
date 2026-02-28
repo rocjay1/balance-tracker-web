@@ -1,15 +1,25 @@
 # ⚖️ Balance Tracker Web
 
-A modern, full-stack web application for tracking financial balances. Built with a Go backend and a React frontend, designed for efficiency and simplicity.
+A modern, full-stack web application for tracking financial balances and maintaining target credit utilization. Built with a Go backend and a React frontend, designed for efficiency, simplicity, and automated financial management.
+
+---
+
+## ✨ Key Features
+
+- **🎯 Target Utilization Tracking**: Automatically calculates the exact payment needed to reach a target credit utilization (defaulting to 10%).
+- **📬 Automated Email Alerts**: Daily background checks (via a built-in scheduler) send email reminders when payments are due.
+- **📥 Intelligent CSV Import**: Seamlessly import transactions from financial institutions with automatic deduplication using SHA256 hashing.
+- **📊 Real-time Dashboard**: A responsive React interface for monitoring balances, statement periods, and upcoming deadlines.
+- **🏠 Self-Hosted Optimized**: Designed for lightweight deployment on low-power hardware like Raspberry Pi.
 
 ---
 
 ## 🏗️ Project Structure
 
-This repository is organized as a monorepo containing both the backend and frontend components.
+This repository is organized as a monorepo:
 
-- **`backend/`**: A Go application using SQLite for data persistence. It handles API requests, data management, and business logic.
-- **`frontend/`**: A React application built with TypeScript, Vite, and Tailwind CSS (v4). It provides a responsive and intuitive user interface.
+- **`backend/`**: A Go application using SQLite for data persistence. It handles API requests, background scheduling, and complex financial calculations.
+- **`frontend/`**: A React application built with TypeScript, Vite, and Tailwind CSS (v4). It provides a high-performance, intuitive user interface.
 - **`docs/`**: Project documentation, including the [Raspberry Pi Deployment Strategy](./docs/pi_management_strategy.md).
 
 ---
@@ -26,8 +36,9 @@ This repository is organized as a monorepo containing both the backend and front
 ### Backend
 
 - **Language**: [Go (Golang)](https://go.dev/)
-- **Database**: [SQLite](https://www.sqlite.org/) (embedded)
-- **Configuration**: YAML-based
+- **Database**: [SQLite](https://www.sqlite.org/) (via [sqlc](https://sqlc.dev/))
+- **Scheduling**: Native Go-based daily job scheduler
+- **Mailing**: SMTP-based notification system
 
 ---
 
@@ -59,7 +70,7 @@ The project includes a `Makefile` to simplify common development tasks.
    make run-backend
    ```
 
-   The backend server will start using the configuration in `backend/config.yaml`.
+   The backend server starts a web server and a background alert scheduler using the configuration in `backend/config.yaml`.
 
 ---
 
@@ -67,9 +78,9 @@ The project includes a `Makefile` to simplify common development tasks.
 
 This project follows a **GitOps** pattern, separating application code from infrastructure configuration.
 
-1. **CI/CD**: GitHub Actions builds and pushes Docker images to the **GitHub Container Registry (GHCR)**.
+1. **CI/CD**: GitHub Actions builds and pushes multi-arch Docker images to the **GitHub Container Registry (GHCR)**.
 2. **Infrastructure**: Deployment is managed via the [rocjay1-infrastructure](https://github.com/rocjay1/rocjay1-infrastructure) repository.
-3. **Hardware**: Currently deployed on a Raspberry Pi (linux/arm64) using Docker Compose and **Watchtower** for automated updates.
+3. **Automated Updates**: Integrated with **Watchtower** for seamless container updates on the target host.
 
 To manually build and push images (requires appropriate permissions):
 
