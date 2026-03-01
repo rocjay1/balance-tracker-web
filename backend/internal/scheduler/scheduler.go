@@ -20,7 +20,7 @@ func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 		loc = time.UTC
 	}
 
-	// Calculate time until next 7:00 AM in the configured timezone.
+	// Calculate time until next 7:00 AM in the configured timezone
 	now := time.Now().In(loc)
 	nextRun := time.Date(now.Year(), now.Month(), now.Day(), 7, 0, 0, 0, loc)
 	if now.After(nextRun) {
@@ -38,7 +38,7 @@ func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 		slog.Info("Running daily alert check")
 		alerts.CheckAndSendAlerts(s, cfg, m, time.Time{}, false)
 
-		// Reset for next day.
+		// Reset for next day
 		timer.Reset(24 * time.Hour)
 	}
 }

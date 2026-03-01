@@ -45,7 +45,7 @@ func main() {
 	// Initialize Mailer
 	mail := mailer.New(cfg.SMTP, cfg.SMTP.Password)
 
-	// 4. Initialize Server Handlers
+	// Initialize Server Handlers
 	srvHandler := api.NewServer(store, cfg, mail)
 	mux := http.NewServeMux()
 

@@ -13,7 +13,7 @@ import (
 	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
-// Parse reads the CSV file and returns a list of transactions
+// Parse reads the CSV file and returns a list of transactions.
 func Parse(path string) ([]store.Transaction, error) {
 	f, err := os.Open(path)
 	if err != nil {

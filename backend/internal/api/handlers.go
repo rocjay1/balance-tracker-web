@@ -119,7 +119,7 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Save to temp file to parse (since csv.Parse takes a path).
+	// Save to temp file to parse (since csv.Parse takes a path)
 	tempFile, err := os.CreateTemp("", "upload-*.csv")
 	if err != nil {
 		http.Error(w, "Failed to create temp file", http.StatusInternalServerError)
