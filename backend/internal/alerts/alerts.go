@@ -16,7 +16,7 @@ import (
 func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, refTime time.Time, force bool) {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
-		slog.Error("Error loading timezone, defaulting to UTC", "timezone", cfg.Timezone, "error", err)
+		slog.Warn("Failed to load timezone, defaulting to UTC", "timezone", cfg.Timezone, "error", err)
 		loc = time.UTC
 	}
 
@@ -26,7 +26,7 @@ func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, re
 	now := refTime.In(loc)
 	targetDate := now.AddDate(0, 0, cfg.AlertDaysBeforeDue)
 
-	slog.Info("Checking alerts", "now", now, "target_date", targetDate)
+	slog.Info("Starting daily alert check", "now", now, "target_date", targetDate)
 
 	for _, card := range cfg.Cards {
 		res, err := calculator.CalculatePayment(s, card, now)

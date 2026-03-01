@@ -42,7 +42,7 @@ func (s *Server) TestAlertHandler(w http.ResponseWriter, r *http.Request) {
 	if dateStr != "" {
 		loc, err := time.LoadLocation(s.config.Timezone)
 		if err != nil {
-			slog.Error("Error loading timezone, defaulting to UTC", "timezone", s.config.Timezone, "error", err)
+			slog.Warn("Failed to load timezone, defaulting to UTC", "timezone", s.config.Timezone, "error", err)
 			loc = time.UTC
 		}
 		parsedDate, err := time.ParseInLocation("2006-01-02", dateStr, loc)
@@ -102,7 +102,7 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	slog.Info("Status check complete", "cards", len(statuses))
+	slog.Info(fmt.Sprintf("Status check complete: processed %d cards", len(statuses)))
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(statuses)
@@ -144,7 +144,7 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	slog.Info("upload complete", "transactions", len(transactions))
+	slog.Info(fmt.Sprintf("upload complete: processed %d transactions", len(transactions)))
 
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(map[string]any{

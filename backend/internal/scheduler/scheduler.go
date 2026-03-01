@@ -16,7 +16,7 @@ import (
 func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
-		slog.Error("Error loading timezone, defaulting to UTC", "timezone", cfg.Timezone, "error", err)
+		slog.Warn("Failed to load timezone, defaulting to UTC", "timezone", cfg.Timezone, "error", err)
 		loc = time.UTC
 	}
 
@@ -35,7 +35,7 @@ func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 	for {
 		<-timer.C
 
-		slog.Info("running daily alert check")
+		slog.Info("Running daily alert check")
 		alerts.CheckAndSendAlerts(s, cfg, m, time.Time{}, false)
 
 		// Reset for next day
