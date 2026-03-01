@@ -18,7 +18,7 @@ func main() {
 	// Configure structured JSON logging
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
 
-	// 1. Load Store
+	// Load Store
 	dbPath := "finance.db"
 	if envDB := os.Getenv("DB_PATH"); envDB != "" {
 		dbPath = envDB
@@ -31,7 +31,7 @@ func main() {
 	}
 	defer store.Close()
 
-	// 2. Load Config
+	// Load Config
 	cfgPath := "config.yaml"
 	if envCfg := os.Getenv("CONFIG_PATH"); envCfg != "" {
 		cfgPath = envCfg
@@ -42,7 +42,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// 3. Initialize Mailer
+	// Initialize Mailer
 	mail := mailer.New(cfg.SMTP, cfg.SMTP.Password)
 
 	// 4. Initialize Server Handlers
@@ -57,7 +57,7 @@ func main() {
 	mux.HandleFunc("OPTIONS /api/upload", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/alerts/test", middleware.AllowCors(srvHandler.HealthHandler))
 
-	// 5. Create HTTP Server with request logging
+	// Create HTTP Server with request logging
 	srv := &http.Server{
 		Addr:         ":8080",
 		Handler:      middleware.RequestLogger(mux),
@@ -66,7 +66,7 @@ func main() {
 		IdleTimeout:  120 * time.Second,
 	}
 
-	// 6. Start Alert Scheduler
+	// Start Alert Scheduler
 	go scheduler.StartAlertScheduler(store, cfg, mail)
 
 	slog.Info("Server starting", "addr", ":8080")

@@ -38,14 +38,14 @@ func New(dbPath string) (*Store, error) {
 	return s, nil
 }
 
-// SyncTransactions atomically replaces transactions for the given account within the date range of the new transactions
-// This handles updates (Pending -> Posted) and deletions (Pre-auths dropping off)
+// SyncTransactions atomically replaces transactions for the given account within the date range of the new transactions.
+// This handles updates (Pending -> Posted) and deletions (Pre-auths dropping off).
 func (s *Store) SyncTransactions(txs []Transaction) error {
 	if len(txs) == 0 {
 		return nil
 	}
 
-	// 1. Group by Account
+	// Group by Account
 	type accountKey struct {
 		Name   string
 		Number string
@@ -57,7 +57,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 		grouped[k] = append(grouped[k], t)
 	}
 
-	// 2. Process each group in a DB transaction
+	// Process each group in a DB transaction
 	tx, err := s.db.Begin()
 	if err != nil {
 		return fmt.Errorf("failed to begin db transaction: %w", err)
@@ -156,13 +156,13 @@ func (s *Store) AddTransaction(t Transaction) error {
 	return err
 }
 
-// GetBalance returns the sum of amounts for the given account up to (and including) the given date
-// Date should be in "YYYY-MM-DD" format
+// GetBalance returns the sum of amounts for the given account up to (and including) the given date.
+// Date should be in "YYYY-MM-DD" format.
 func (s *Store) GetBalance(name string, accountNumber string, untilDate string) (float64, error) {
 	return s.getBalanceInternal(name, accountNumber, "", untilDate)
 }
 
-// GetBalanceSince returns sum of amounts > fromDate AND <= untilDate
+// GetBalanceSince returns sum of amounts > fromDate AND <= untilDate.
 func (s *Store) GetBalanceSince(name string, accountNumber string, fromDate string, untilDate string) (float64, error) {
 	return s.getBalanceInternal(name, accountNumber, fromDate, untilDate)
 }

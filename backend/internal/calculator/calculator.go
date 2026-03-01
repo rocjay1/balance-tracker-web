@@ -20,24 +20,24 @@ type PaymentResult struct {
 	DueDate          time.Time
 }
 
-// CalculatePayment determines the payment needed for a card to maintain target utilization
+// CalculatePayment determines the payment needed for a card to maintain target utilization.
 func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time) (*PaymentResult, error) {
-	// 1. Determine dates
+	// Determine dates.
 	// We need the *last* statement date to know what the statement balance is.
 	// If StatementDay is 20, and today is Feb 12, last statement was Jan 20.
 
 	year, month, _ := refTime.Date()
 
-	// Construct potential statement date for this month
+	// Construct potential statement date for this month.
 	thisMonthStatement := mkDate(year, month, card.StatementDay)
 
 	var lastStatementDate time.Time
 	if refTime.After(thisMonthStatement) || refTime.Equal(thisMonthStatement) {
 		lastStatementDate = thisMonthStatement
 	} else {
-		// Go back to previous month
+		// Go back to previous month.
 		lastStatementDate = thisMonthStatement.AddDate(0, -1, 0)
-		// Handle month rolling edge cases (e.g. if StatementDay is 31 and prev month is Feb)
+		// Handle month rolling edge cases (e.g. if StatementDay is 31 and prev month is Feb).
 		prevMonth := time.Date(year, month-1, 1, 0, 0, 0, 0, time.UTC)
 		lastStatementDate = mkDate(prevMonth.Year(), prevMonth.Month(), card.StatementDay)
 	}
@@ -45,12 +45,12 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 	lastStatementStr := lastStatementDate.Format("2006-01-02")
 	refDateStr := refTime.Format("2006-01-02")
 
-	// 2. Query Balances
-	// If StartingBalance is set, we need to calculate: StartingBalance + Sum(trans > StartingDate AND trans <= queryDate)
+	// Query Balances.
+	// If StartingBalance is set, we need to calculate: StartingBalance + Sum(trans > StartingDate AND trans <= queryDate).
 
 	getBalance := func(until string) (float64, error) {
 		bal := 0.0
-		fromDate := "0000-01-01" // Default start of time
+		fromDate := "0000-01-01" // Default start of time.
 
 		if card.StartingDate != "" {
 			fromDate = card.StartingDate
@@ -74,7 +74,7 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		return nil, fmt.Errorf("failed to get current balance: %w", err)
 	}
 
-	// 3. Logic
+	// Logic.
 	projectedBalance := currentBalance - statementBalance
 	targetBalance := card.Limit * 0.10
 	paymentNeeded := projectedBalance - targetBalance
@@ -101,10 +101,10 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 }
 
 func mkDate(y int, m time.Month, d int) time.Time {
-	// Handle invalid days (e.g. Feb 30)
-	// Simplest: Time.Date normalizes, so Feb 30 becomes Mar 2
-	// But credit cards usually stick to "last day" if day doesn't exist
-	t := time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC) // Last day of month m
+	// Handle invalid days (e.g. Feb 30).
+	// Simplest: Time.Date normalizes, so Feb 30 becomes Mar 2.
+	// But credit cards usually stick to "last day" if day doesn't exist.
+	t := time.Date(y, m+1, 0, 0, 0, 0, 0, time.UTC) // Last day of month m.
 	if d > t.Day() {
 		d = t.Day()
 	}

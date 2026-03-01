@@ -12,7 +12,7 @@ import (
 	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
-// CheckAndSendAlerts checks if any card has a payment due in exactly 3 days
+// CheckAndSendAlerts checks if any card has a payment due in exactly 3 days.
 func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, refTime time.Time, force bool) {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
