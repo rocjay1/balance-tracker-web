@@ -1,9 +1,4 @@
-# Environment variables
-.env
-.env.*
-!.env.example
-
-# OS Files
+# OS & System
 .DS_Store
 Thumbs.db
 ._*
@@ -12,17 +7,25 @@ Thumbs.db
 node_modules/
 vendor/
 
-# Build Attributes
-dist/
+# Environment & Config
+.env
+.env.*
+!.env.example
+config.yaml
+
+# Build & Distributions
+backend/bin
+backend/server
 build/
-*.tar
+dist/
+balance-tracker-images.tar
 *.gz
+*.tar
 *.zip
 
-# Application Specific
-balance-tracker-images.tar
-backend/finance.db
-backend/server
+# Logs
 *.log
-config.yaml
-backend/bin
+
+# Project Specific
+.gemini
+backend/finance.db
