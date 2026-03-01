@@ -25,3 +25,4 @@ backend/finance.db
 backend/server
 *.log
 config.yaml
+backend/bin
