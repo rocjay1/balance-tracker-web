@@ -18,21 +18,21 @@ type Store struct {
 // New opens or creates a SQLite database at dbPath, runs migrations, and returns a Store.
 func New(dbPath string) (*Store, error) {
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0755); err != nil {
-		return nil, fmt.Errorf("failed to create db directory: %w", err)
+		return nil, fmt.Errorf("Failed to create db directory: %w", err)
 	}
 
 	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open database: %w", err)
+		return nil, fmt.Errorf("Failed to open database: %w", err)
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("Failed to ping database: %w", err)
 	}
 
 	s := &Store{db: db}
 	if err := s.migrate(); err != nil {
-		return nil, fmt.Errorf("failed to migrate database: %w", err)
+		return nil, fmt.Errorf("Failed to migrate database: %w", err)
 	}
 
 	return s, nil
@@ -60,7 +60,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 	// Process each group in a DB transaction
 	tx, err := s.db.Begin()
 	if err != nil {
-		return fmt.Errorf("failed to begin db transaction: %w", err)
+		return fmt.Errorf("Failed to begin db transaction: %w", err)
 	}
 	defer tx.Rollback() // Rollback if not committed
 
@@ -84,7 +84,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 		WHERE account_name = ? AND account_number = ? AND date >= ? AND date <= ?
 		`
 		if _, err := tx.Exec(delQuery, key.Name, key.Number, minDate, maxDate); err != nil {
-			return fmt.Errorf("failed to delete existing transactions for %s: %w", key.Name, err)
+			return fmt.Errorf("Failed to delete existing transactions for %s: %w", key.Name, err)
 		}
 
 		// Insert new
@@ -94,7 +94,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 		`
 		for _, t := range group {
 			if _, err := tx.Exec(insQuery, t.Date, t.AccountName, t.InstitutionName, t.AccountNumber, t.Amount, t.Description, t.Category, t.Ignored, t.Hash); err != nil {
-				return fmt.Errorf("failed to insert transaction %s: %w", t.Hash, err)
+				return fmt.Errorf("Failed to insert transaction %s: %w", t.Hash, err)
 			}
 		}
 	}

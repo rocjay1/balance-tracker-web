@@ -17,7 +17,7 @@ import (
 func Parse(path string) ([]store.Transaction, error) {
 	f, err := os.Open(path)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open csv file: %w", err)
+		return nil, fmt.Errorf("Failed to open csv file: %w", err)
 	}
 	defer f.Close()
 
@@ -25,7 +25,7 @@ func Parse(path string) ([]store.Transaction, error) {
 	// Read header
 	header, err := r.Read()
 	if err != nil {
-		return nil, fmt.Errorf("failed to read header: %w", err)
+		return nil, fmt.Errorf("Failed to read header: %w", err)
 	}
 
 	// Map header columns to indices
@@ -43,7 +43,7 @@ func Parse(path string) ([]store.Transaction, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("error reading line %d: %w", lineNum, err)
+			return nil, fmt.Errorf("Frror reading line %d: %w", lineNum, err)
 		}
 		lineNum++
 

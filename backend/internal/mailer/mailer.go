@@ -38,7 +38,7 @@ func (m *Mailer) Send(to []string, subject, body string) error {
 
 	addr := fmt.Sprintf("%s:%d", m.cfg.Host, m.cfg.Port)
 	if err := smtp.SendMail(addr, auth, m.cfg.User, to, []byte(b.String())); err != nil {
-		return fmt.Errorf("failed to send email: %w", err)
+		return fmt.Errorf("Failed to send email: %w", err)
 	}
 
 	return nil

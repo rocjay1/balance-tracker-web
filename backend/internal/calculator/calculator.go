@@ -64,12 +64,12 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 
 	statementBalance, err := getBalance(lastStatementStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get statement balance: %w", err)
+		return nil, fmt.Errorf("Failed to get statement balance: %w", err)
 	}
 
 	currentBalance, err := getBalance(refDateStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get current balance: %w", err)
+		return nil, fmt.Errorf("Failed to get current balance: %w", err)
 	}
 
 	// Logic
