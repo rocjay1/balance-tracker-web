@@ -41,6 +41,9 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		lastStatementDate = mkDate(prevMonth.Year(), prevMonth.Month(), card.StatementDay)
 	}
 
+	// Apply configured grace days to the statement cutoff window to account for delayed posting
+	lastStatementDate = lastStatementDate.AddDate(0, 0, card.StatementGraceDays)
+
 	lastStatementStr := lastStatementDate.Format("2006-01-02")
 	refDateStr := refTime.Format("2006-01-02")
 
