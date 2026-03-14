@@ -12,7 +12,7 @@ import (
 	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
-// CheckAndSendAlerts checks if any card has a payment due in exactly 3 days.
+// CheckAndSendAlerts checks if any card has a payment due in AlertDaysBeforeDue days or fewer.
 func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, refTime time.Time, force bool) {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
@@ -24,9 +24,7 @@ func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, re
 		refTime = time.Now()
 	}
 	now := refTime.In(loc)
-	targetDate := now.AddDate(0, 0, cfg.AlertDaysBeforeDue)
-
-	slog.Info("Starting daily alert check", "now", now, "target_date", targetDate)
+	slog.Info("Starting daily alert check", "now", now)
 
 	for _, card := range cfg.Cards {
 		res, err := calculator.CalculatePayment(s, card, now)
@@ -35,10 +33,10 @@ func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, re
 			continue
 		}
 
-		isDueOnTargetDate := isSameDay(res.DueDate, targetDate)
-		isPaymentNeeded := res.PaymentNeeded > 1.0
+		dueDate := res.DueDate.In(loc)
+		alertThreshold := time.Duration(cfg.AlertDaysBeforeDue) * 24 * time.Hour
 
-		if isDueOnTargetDate && (isPaymentNeeded || force) {
+		if now.Sub(dueDate) <= alertThreshold && res.PaymentNeeded > 1.0 {
 			slog.Info("Alert: Payment due", "card", card.Name, "due_date", res.DueDate.Format("2006-01-02"), "amount", res.PaymentNeeded)
 
 			subject := fmt.Sprintf("Payment Alert: %s Due Soon", card.Name)
@@ -52,8 +50,4 @@ func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, re
 			}
 		}
 	}
-}
-
-func isSameDay(t1, t2 time.Time) bool {
-	return t1.Year() == t2.Year() && t1.Month() == t2.Month() && t1.Day() == t2.Day()
 }
