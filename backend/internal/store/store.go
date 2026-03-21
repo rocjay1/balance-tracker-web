@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
@@ -126,22 +127,51 @@ func (s *Store) migrate() error {
 	alterQuery := `ALTER TABLE transactions ADD COLUMN institution_name TEXT DEFAULT '';`
 	s.db.Exec(alterQuery) // Ignore error if column exists
 
-	queryOverrides := `
+	// Create or update balance_overrides table with statement_balance as nullable
+	_, err := s.db.Exec(`
 	CREATE TABLE IF NOT EXISTS balance_overrides (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		account_number TEXT NOT NULL,
-		statement_balance REAL NOT NULL,
+		statement_balance REAL,
+		current_balance REAL,
 		statement_date TEXT NOT NULL,
 		updated_at TEXT NOT NULL,
 		UNIQUE(account_number, statement_date)
 	);
-	`
-	if _, err := s.db.Exec(queryOverrides); err != nil {
+	`)
+	if err != nil {
 		return err
 	}
 
-	// Migration: Add current_balance column if not exists
-	s.db.Exec(`ALTER TABLE balance_overrides ADD COLUMN current_balance REAL;`)
+	// Handle the transition from the old schema where statement_balance was NOT NULL
+	var sqlStmt string
+	err = s.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type='table' AND name='balance_overrides'`).Scan(&sqlStmt)
+	if err == nil && strings.Contains(sqlStmt, "statement_balance REAL NOT NULL") {
+		// Ensure current_balance exists before we copy data, just in case
+		// This is a safeguard; the CREATE TABLE IF NOT EXISTS above should handle it for new tables.
+		// For existing tables that need migration, this ensures the column is present before copying.
+		s.db.Exec(`ALTER TABLE balance_overrides ADD COLUMN current_balance REAL;`)
+
+		migrationSQL := `
+		CREATE TABLE balance_overrides_v2 (
+			account_number TEXT NOT NULL,
+			statement_balance REAL,
+			current_balance REAL,
+			statement_date TEXT NOT NULL,
+			updated_at TEXT NOT NULL,
+			UNIQUE(account_number, statement_date)
+		);
+		INSERT INTO balance_overrides_v2 (account_number, statement_balance, current_balance, statement_date, updated_at)
+		SELECT account_number, statement_balance, current_balance, statement_date, updated_at FROM balance_overrides;
+		DROP TABLE balance_overrides;
+		ALTER TABLE balance_overrides_v2 RENAME TO balance_overrides;
+		`
+		if _, err := s.db.Exec(migrationSQL); err != nil {
+			return fmt.Errorf("failed to drop NOT NULL constraint on statement_balance: %w", err)
+		}
+	} else if err == nil && !strings.Contains(sqlStmt, "current_balance") {
+		// Fallback for an intermediate state where NOT NULL was removed but current_balance is missing
+		s.db.Exec(`ALTER TABLE balance_overrides ADD COLUMN current_balance REAL;`)
+	}
 
 	return nil
 }
