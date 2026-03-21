@@ -197,3 +197,58 @@ func (s *Store) getBalanceInternal(name, accountNumber, fromDate, untilDate stri
 	}
 	return balance, nil
 }
+
+// GetTransactions returns a list of transactions matching the given criteria.
+// Empty strings for any parameter mean "no filter" for that field.
+func (s *Store) GetTransactions(accountName, accountNumber, dateFrom, dateTo string) ([]Transaction, error) {
+	query := `
+	SELECT date, account_name, institution_name, account_number, amount, description, category, ignored, hash
+	FROM transactions
+	WHERE 1=1
+	`
+	var args []any
+
+	if accountName != "" {
+		query += " AND (account_name = ? OR institution_name = ?)"
+		args = append(args, accountName, accountName)
+	}
+	if accountNumber != "" {
+		query += " AND account_number = ?"
+		args = append(args, accountNumber)
+	}
+	if dateFrom != "" {
+		query += " AND date >= ?"
+		args = append(args, dateFrom)
+	}
+	if dateTo != "" {
+		query += " AND date <= ?"
+		args = append(args, dateTo)
+	}
+
+	query += " ORDER BY date DESC, id DESC"
+
+	rows, err := s.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var txs []Transaction
+	for rows.Next() {
+		var t Transaction
+		if err := rows.Scan(&t.Date, &t.AccountName, &t.InstitutionName, &t.AccountNumber, &t.Amount, &t.Description, &t.Category, &t.Ignored, &t.Hash); err != nil {
+			return nil, err
+		}
+		txs = append(txs, t)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	if txs == nil {
+		txs = make([]Transaction, 0)
+	}
+
+	return txs, nil
+}

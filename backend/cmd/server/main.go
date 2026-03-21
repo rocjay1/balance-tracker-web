@@ -51,9 +51,11 @@ func main() {
 
 	mux.HandleFunc("/api/health", srvHandler.HealthHandler)
 	mux.HandleFunc("GET /api/status", middleware.AllowCors(srvHandler.StatusHandler))
+	mux.HandleFunc("GET /api/transactions", middleware.AllowCors(srvHandler.TransactionsHandler))
 	mux.HandleFunc("POST /api/upload", middleware.AllowCors(srvHandler.UploadHandler))
 	mux.HandleFunc("POST /api/alerts/test", middleware.AllowCors(srvHandler.TestAlertHandler))
 	mux.HandleFunc("OPTIONS /api/status", middleware.AllowCors(srvHandler.HealthHandler))
+	mux.HandleFunc("OPTIONS /api/transactions", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/upload", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/alerts/test", middleware.AllowCors(srvHandler.HealthHandler))
 

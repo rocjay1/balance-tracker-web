@@ -152,3 +152,25 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 		"count":   len(transactions),
 	})
 }
+
+// TransactionsHandler returns a list of transactions, optionally filtered by query parameters.
+func (s *Server) TransactionsHandler(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	accountName := q.Get("account_name")
+	accountNumber := q.Get("account_number")
+	dateFrom := q.Get("date_from")
+	dateTo := q.Get("date_to")
+
+	txs, err := s.store.GetTransactions(accountName, accountNumber, dateFrom, dateTo)
+	if err != nil {
+		slog.Error("Error querying transactions", "error", err)
+		http.Error(w, "Error querying transactions", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(txs); err != nil {
+		slog.Error("Error encoding transactions", "error", err)
+		http.Error(w, "Error encoding response", http.StatusInternalServerError)
+	}
+}
