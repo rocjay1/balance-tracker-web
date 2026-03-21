@@ -65,9 +65,15 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		return bal + dbBal, nil
 	}
 
-	statementBalance, err := getBalance(lastStatementStr)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to get statement balance: %w", err)
+	var statementBalance float64
+	var err error
+	if card.StatementBalanceOverride != nil {
+		statementBalance = *card.StatementBalanceOverride
+	} else {
+		statementBalance, err = getBalance(lastStatementStr)
+		if err != nil {
+			return nil, fmt.Errorf("Failed to get statement balance: %w", err)
+		}
 	}
 
 	currentBalance, err := getBalance(refDateStr)

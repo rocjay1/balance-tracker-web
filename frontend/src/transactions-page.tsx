@@ -45,24 +45,34 @@ const TransactionsPage: React.FC = () => {
             }
             const data = await response.json();
             setTransactions(data || []);
-            
-            // Extract unique accounts for the filter dropdown if we haven't already
-            if (availableAccounts.length === 0 && data) {
-                 const unique = new Map();
-                 data.forEach((t: Transaction) => {
-                     const key = `${t.AccountName} - ${t.AccountNumber}`;
-                     if (!unique.has(key)) {
-                         unique.set(key, {name: t.AccountName, number: t.AccountNumber});
-                     }
-                 });
-                 setAvailableAccounts(Array.from(unique.values()));
-            }
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Unknown error');
         } finally {
             setLoading(false);
         }
     };
+
+    const fetchAccounts = async () => {
+        try {
+            const response = await fetch('/api/status');
+            if (response.ok) {
+                const data = await response.json();
+                if (data) {
+                    const accounts = data.map((card: any) => ({
+                        name: card.card_name,
+                        number: card.account_number
+                    }));
+                    setAvailableAccounts(accounts);
+                }
+            }
+        } catch (err) {
+            console.error('Failed to fetch accounts:', err);
+        }
+    };
+
+    useEffect(() => {
+        fetchAccounts();
+    }, []);
 
     useEffect(() => {
         fetchTransactions();
