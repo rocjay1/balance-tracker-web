@@ -301,95 +301,49 @@ func (s *Store) GetTransactions(accountName, accountNumber, dateFrom, dateTo str
 	return txs, nil
 }
 
-// BalanceOverrideRow holds both the statement and current balance overrides for a given period.
-type BalanceOverrideRow struct {
-	StatementBalance *float64
-	CurrentBalance   *float64
-}
-
-// SetBalanceOverride upserts a balance override for the specified account and statement date.
-// Either statementBal or currentBal (or both) may be nil to leave that field unchanged.
-func (s *Store) SetBalanceOverride(accountNumber, statementDate string, statementBal, currentBal *float64) error {
-	// Check if a row already exists.
-	existing, err := s.GetBalanceOverride(accountNumber, statementDate)
-	if err != nil {
-		return err
-	}
-
-	now := time.Now().Format(time.RFC3339)
-
-	if existing == nil {
-		// Insert a new row.
-		query := `
-		INSERT INTO balance_overrides (account_number, statement_balance, current_balance, statement_date, updated_at)
-		VALUES (?, ?, ?, ?, ?)
-		`
-		var stmtVal, curVal sql.NullFloat64
-		if statementBal != nil {
-			stmtVal = sql.NullFloat64{Float64: *statementBal, Valid: true}
-		}
-		if currentBal != nil {
-			curVal = sql.NullFloat64{Float64: *currentBal, Valid: true}
-		}
-		_, err = s.db.Exec(query, accountNumber, stmtVal, curVal, statementDate, now)
-		return err
-	}
-
-	// Update existing row, only touching the fields that are provided.
-	if statementBal != nil {
-		_, err = s.db.Exec(`UPDATE balance_overrides SET statement_balance = ?, updated_at = ? WHERE account_number = ? AND statement_date = ?`,
-			*statementBal, now, accountNumber, statementDate)
-		if err != nil {
-			return err
-		}
-	}
-	if currentBal != nil {
-		_, err = s.db.Exec(`UPDATE balance_overrides SET current_balance = ?, updated_at = ? WHERE account_number = ? AND statement_date = ?`,
-			*currentBal, now, accountNumber, statementDate)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// GetBalanceOverride retrieves both balance overrides for the specified account and statement date.
-func (s *Store) GetBalanceOverride(accountNumber, statementDate string) (*BalanceOverrideRow, error) {
+// SetBalanceOverride upserts a statement balance override for the specified account and statement date.
+func (s *Store) SetBalanceOverride(accountNumber, statementDate string, balance float64) error {
 	query := `
-	SELECT statement_balance, current_balance
+	INSERT INTO balance_overrides (account_number, statement_balance, statement_date, updated_at)
+	VALUES (?, ?, ?, ?)
+	ON CONFLICT(account_number, statement_date) DO UPDATE SET 
+		statement_balance = excluded.statement_balance, 
+		updated_at = excluded.updated_at
+	`
+	now := time.Now().Format(time.RFC3339)
+	_, err := s.db.Exec(query, accountNumber, balance, statementDate, now)
+	return err
+}
+
+// GetBalanceOverride retrieves the statement balance override for the specified account and statement date.
+func (s *Store) GetBalanceOverride(accountNumber, statementDate string) (*float64, error) {
+	query := `
+	SELECT statement_balance
 	FROM balance_overrides
 	WHERE account_number = ? AND statement_date = ?
 	`
-	var stmtBal, curBal sql.NullFloat64
-	err := s.db.QueryRow(query, accountNumber, statementDate).Scan(&stmtBal, &curBal)
+	var bal sql.NullFloat64
+	err := s.db.QueryRow(query, accountNumber, statementDate).Scan(&bal)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
 	if err != nil {
 		return nil, err
 	}
-
-	row := &BalanceOverrideRow{}
-	if stmtBal.Valid {
-		row.StatementBalance = &stmtBal.Float64
+	// bal could be logically NULL if they deleted statement_balance but kept current_balance.
+	// however, since we reverted current_balance, any row should have a statement balance.
+	if !bal.Valid {
+		return nil, nil
 	}
-	if curBal.Valid {
-		row.CurrentBalance = &curBal.Float64
-	}
-	return row, nil
+	return &bal.Float64, nil
 }
 
-// DeleteBalanceOverride removes a specific override field. If both fields become null, deletes the row.
-func (s *Store) DeleteBalanceOverride(accountNumber, statementDate, field string) error {
-	// Null out the specific field.
-	query := fmt.Sprintf(`UPDATE balance_overrides SET %s = NULL, updated_at = ? WHERE account_number = ? AND statement_date = ?`, field)
-	_, err := s.db.Exec(query, time.Now().Format(time.RFC3339), accountNumber, statementDate)
-	if err != nil {
-		return err
-	}
-
-	// Clean up: delete the row if both overrides are null.
-	_, err = s.db.Exec(`DELETE FROM balance_overrides WHERE account_number = ? AND statement_date = ? AND statement_balance IS NULL AND current_balance IS NULL`,
-		accountNumber, statementDate)
+// DeleteBalanceOverride removes the override for the given account/date.
+func (s *Store) DeleteBalanceOverride(accountNumber, statementDate string) error {
+	query := `
+	DELETE FROM balance_overrides
+	WHERE account_number = ? AND statement_date = ?
+	`
+	_, err := s.db.Exec(query, accountNumber, statementDate)
 	return err
 }

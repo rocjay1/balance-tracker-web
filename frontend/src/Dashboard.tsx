@@ -13,12 +13,10 @@ interface CardData {
     payment_needed: number;
     due_date: string;
     has_override: boolean;
-    has_current_override: boolean;
 }
 
 type ModalState = {
     card: CardData;
-    field: 'statement_balance' | 'current_balance';
 } | null;
 
 const Dashboard: React.FC = () => {
@@ -115,8 +113,7 @@ const Dashboard: React.FC = () => {
                         <Card 
                             key={`${card.card_name}-${card.account_number}-${idx}`} 
                             {...card} 
-                            onEditBalance={() => setModalState({ card, field: 'statement_balance' })}
-                            onEditCurrentBalance={() => setModalState({ card, field: 'current_balance' })}
+                            onEditBalance={() => setModalState({ card })}
                         />
                     ))}
                 </div>
@@ -137,17 +134,8 @@ const Dashboard: React.FC = () => {
                 }}
                 cardName={modalState?.card.card_name || ''}
                 accountNumber={modalState?.card.account_number || ''}
-                balanceValue={
-                    modalState?.field === 'current_balance'
-                        ? (modalState?.card.current_balance || 0)
-                        : (modalState?.card.statement_balance || 0)
-                }
-                hasOverride={
-                    modalState?.field === 'current_balance'
-                        ? (modalState?.card.has_current_override || false)
-                        : (modalState?.card.has_override || false)
-                }
-                field={modalState?.field || 'statement_balance'}
+                balanceValue={modalState?.card.statement_balance || 0}
+                hasOverride={modalState?.card.has_override || false}
             />
         </div>
     );

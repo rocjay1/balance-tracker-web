@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 
-type BalanceField = 'statement_balance' | 'current_balance';
-
 interface BalanceOverrideModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -10,13 +8,7 @@ interface BalanceOverrideModalProps {
     accountNumber: string;
     balanceValue: number;
     hasOverride: boolean;
-    field: BalanceField;
 }
-
-const fieldLabels: Record<BalanceField, string> = {
-    statement_balance: 'Statement Balance',
-    current_balance: 'Current Balance',
-};
 
 const BalanceOverrideModal: React.FC<BalanceOverrideModalProps> = ({
     isOpen,
@@ -26,7 +18,6 @@ const BalanceOverrideModal: React.FC<BalanceOverrideModalProps> = ({
     accountNumber,
     balanceValue,
     hasOverride,
-    field,
 }) => {
     const [balance, setBalance] = useState<string>(balanceValue.toString());
     const [loading, setLoading] = useState(false);
@@ -40,8 +31,6 @@ const BalanceOverrideModal: React.FC<BalanceOverrideModalProps> = ({
     }, [isOpen, balanceValue]);
 
     if (!isOpen) return null;
-
-    const label = fieldLabels[field];
 
     const handleSave = async () => {
         const val = parseFloat(balance);
@@ -59,7 +48,7 @@ const BalanceOverrideModal: React.FC<BalanceOverrideModalProps> = ({
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ [field]: val }),
+                body: JSON.stringify({ statement_balance: val }),
             });
 
             if (!res.ok) {
@@ -80,7 +69,7 @@ const BalanceOverrideModal: React.FC<BalanceOverrideModalProps> = ({
         setError(null);
 
         try {
-            const res = await fetch(`/api/overrides/${accountNumber}?field=${field}`, {
+            const res = await fetch(`/api/overrides/${accountNumber}`, {
                 method: 'DELETE',
             });
 
@@ -101,7 +90,7 @@ const BalanceOverrideModal: React.FC<BalanceOverrideModalProps> = ({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 font-sans p-4">
             <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-gray-800">Edit {label}</h3>
+                    <h3 className="text-lg font-bold text-gray-800">Edit Statement Balance</h3>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
@@ -115,7 +104,7 @@ const BalanceOverrideModal: React.FC<BalanceOverrideModalProps> = ({
 
                     <div>
                         <label className="block text-sm text-gray-500 mb-1" htmlFor="balanceInput">
-                            {label} Override
+                            Statement Balance Override
                         </label>
                         <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-medium">$</span>
@@ -130,9 +119,7 @@ const BalanceOverrideModal: React.FC<BalanceOverrideModalProps> = ({
                                 disabled={loading}
                             />
                         </div>
-                        <p className="text-xs text-gray-500 mt-2">
-                            This will override the calculated {label.toLowerCase()} for the current billing cycle.
-                        </p>
+                            This will override the calculated statement balance for the current billing cycle.
                     </div>
 
                     {error && (

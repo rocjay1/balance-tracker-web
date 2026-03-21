@@ -10,18 +10,15 @@ import (
 	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
-// PaymentResult holds the computed payment details for a single credit card.
 type PaymentResult struct {
-	CardName           string
-	StatementBalance   float64
-	CurrentBalance     float64
-	RawCurrentBalance  float64
-	ProjectedBalance   float64 // Current - Statement
-	TargetBalance      float64 // Limit * 0.10
-	PaymentNeeded      float64
-	DueDate            time.Time
-	HasOverride        bool
-	HasCurrentOverride bool
+	CardName         string
+	StatementBalance float64
+	CurrentBalance   float64
+	ProjectedBalance float64 // Current - Statement
+	TargetBalance    float64 // Limit * 0.10
+	PaymentNeeded    float64
+	DueDate          time.Time
+	HasOverride      bool
 }
 
 // GetStatementDate returns the last statement cutoff date for the given reference time.
@@ -74,27 +71,20 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 
 	statementBalance := calculatedStatementBalance
 	hasOverride := false
-	hasCurrentOverride := false
 
 	override, err := s.GetBalanceOverride(card.AccountNumber, lastStatementStr)
 	if err != nil {
 		slog.Error("Failed to check for balance override", "card", card.Name, "error", err)
 	}
 
-	if override != nil && override.StatementBalance != nil {
-		statementBalance = *override.StatementBalance
+	if override != nil {
+		statementBalance = *override
 		hasOverride = true
 	}
 
 	currentBalance, err := getBalance(refDateStr)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get current balance: %w", err)
-	}
-	rawCurrentBalance := currentBalance
-
-	if override != nil && override.CurrentBalance != nil {
-		currentBalance += *override.CurrentBalance
-		hasCurrentOverride = true
 	}
 
 	// Logic
@@ -113,16 +103,14 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 	}
 
 	return &PaymentResult{
-		CardName:           card.Name,
-		StatementBalance:   statementBalance,
-		CurrentBalance:     currentBalance,
-		RawCurrentBalance:  rawCurrentBalance,
-		ProjectedBalance:   projectedBalance,
-		TargetBalance:      targetBalance,
-		PaymentNeeded:      paymentNeeded,
-		DueDate:            dueDate,
-		HasOverride:        hasOverride,
-		HasCurrentOverride: hasCurrentOverride,
+		CardName:         card.Name,
+		StatementBalance: statementBalance,
+		CurrentBalance:   currentBalance,
+		ProjectedBalance: projectedBalance,
+		TargetBalance:    targetBalance,
+		PaymentNeeded:    paymentNeeded,
+		DueDate:          dueDate,
+		HasOverride:      hasOverride,
 	}, nil
 }
 
