@@ -65,8 +65,12 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		return bal + dbBal, nil
 	}
 
-	var statementBalance float64
-	var err error
+	calculatedStatementBalance, err := getBalance(lastStatementStr)
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get statement balance: %w", err)
+	}
+
+	statementBalance := calculatedStatementBalance
 	hasOverride := false
 	
 	override, err := s.GetBalanceOverride(card.AccountNumber, lastStatementStr)
@@ -77,16 +81,19 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 	if override != nil {
 		statementBalance = *override
 		hasOverride = true
-	} else {
-		statementBalance, err = getBalance(lastStatementStr)
-		if err != nil {
-			return nil, fmt.Errorf("Failed to get statement balance: %w", err)
-		}
 	}
 
 	currentBalance, err := getBalance(refDateStr)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get current balance: %w", err)
+	}
+
+	// If there's an override, the discrepancy in the statement balance likely 
+	// means those same transactions are missing/miscalculated in the current balance.
+	// We apply the exact same delta to the current balance.
+	if hasOverride {
+		delta := statementBalance - calculatedStatementBalance
+		currentBalance += delta
 	}
 
 	// Logic
