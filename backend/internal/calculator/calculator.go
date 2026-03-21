@@ -15,6 +15,7 @@ type PaymentResult struct {
 	CardName           string
 	StatementBalance   float64
 	CurrentBalance     float64
+	RawCurrentBalance  float64
 	ProjectedBalance   float64 // Current - Statement
 	TargetBalance      float64 // Limit * 0.10
 	PaymentNeeded      float64
@@ -89,9 +90,10 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get current balance: %w", err)
 	}
+	rawCurrentBalance := currentBalance
 
 	if override != nil && override.CurrentBalance != nil {
-		currentBalance = *override.CurrentBalance
+		currentBalance += *override.CurrentBalance
 		hasCurrentOverride = true
 	}
 
@@ -114,6 +116,7 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		CardName:           card.Name,
 		StatementBalance:   statementBalance,
 		CurrentBalance:     currentBalance,
+		RawCurrentBalance:  rawCurrentBalance,
 		ProjectedBalance:   projectedBalance,
 		TargetBalance:      targetBalance,
 		PaymentNeeded:      paymentNeeded,

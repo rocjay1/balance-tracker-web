@@ -216,6 +216,31 @@ func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "At least one of statement_balance or current_balance is required", http.StatusBadRequest)
 			return
 		}
+
+		if req.CurrentBalance != nil {
+			var matchedCard *config.CardConfig
+			for _, card := range s.config.Cards {
+				if card.AccountNumber == accountNumber {
+					c := card // copy the card to avoid pointer sharing loop variable
+					matchedCard = &c
+					break
+				}
+			}
+			if matchedCard == nil { // Should technically not happen if routing is good
+				http.Error(w, "Card not found", http.StatusNotFound)
+				return
+			}
+			res, err := calculator.CalculatePayment(s.store, *matchedCard, time.Now())
+			if err != nil {
+				slog.Error("Failed to calculate baseline for current balance override", "error", err)
+				http.Error(w, "Server error", http.StatusInternalServerError)
+				return
+			}
+			// Convert absolute target to an offset relative to purely calculated data
+			offset := *req.CurrentBalance - res.RawCurrentBalance
+			req.CurrentBalance = &offset
+		}
+
 		if err := s.store.SetBalanceOverride(accountNumber, stmtDateStr, req.StatementBalance, req.CurrentBalance); err != nil {
 			slog.Error("Failed to set override", "error", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)
