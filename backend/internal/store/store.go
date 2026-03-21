@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
@@ -124,6 +125,20 @@ func (s *Store) migrate() error {
 	// SQLite doesn't have "IF NOT EXISTS" for columns, so we try and ignore error
 	alterQuery := `ALTER TABLE transactions ADD COLUMN institution_name TEXT DEFAULT '';`
 	s.db.Exec(alterQuery) // Ignore error if column exists
+
+	queryOverrides := `
+	CREATE TABLE IF NOT EXISTS balance_overrides (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		account_number TEXT NOT NULL,
+		statement_balance REAL NOT NULL,
+		statement_date TEXT NOT NULL,
+		updated_at TEXT NOT NULL,
+		UNIQUE(account_number, statement_date)
+	);
+	`
+	if _, err := s.db.Exec(queryOverrides); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -251,4 +266,45 @@ func (s *Store) GetTransactions(accountName, accountNumber, dateFrom, dateTo str
 	}
 
 	return txs, nil
+}
+
+// SetBalanceOverride upserts a balance override for the specified account and statement date.
+func (s *Store) SetBalanceOverride(accountNumber, statementDate string, balance float64) error {
+	query := `
+	INSERT INTO balance_overrides (account_number, statement_balance, statement_date, updated_at)
+	VALUES (?, ?, ?, ?)
+	ON CONFLICT(account_number, statement_date) DO UPDATE SET
+		statement_balance = excluded.statement_balance,
+		updated_at = excluded.updated_at
+	`
+	_, err := s.db.Exec(query, accountNumber, balance, statementDate, time.Now().Format(time.RFC3339))
+	return err
+}
+
+// GetBalanceOverride retrieves the balance override for the specified account and statement date, if any.
+func (s *Store) GetBalanceOverride(accountNumber, statementDate string) (*float64, error) {
+	query := `
+	SELECT statement_balance
+	FROM balance_overrides
+	WHERE account_number = ? AND statement_date = ?
+	`
+	var balance float64
+	err := s.db.QueryRow(query, accountNumber, statementDate).Scan(&balance)
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	return &balance, nil
+}
+
+// DeleteBalanceOverride removes the balance override for the specified account and statement date.
+func (s *Store) DeleteBalanceOverride(accountNumber, statementDate string) error {
+	query := `
+	DELETE FROM balance_overrides
+	WHERE account_number = ? AND statement_date = ?
+	`
+	_, err := s.db.Exec(query, accountNumber, statementDate)
+	return err
 }

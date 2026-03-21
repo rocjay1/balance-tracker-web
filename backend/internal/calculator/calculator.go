@@ -3,6 +3,7 @@ package calculator
 
 import (
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/rocjay1/balance-tracker-web/backend/internal/config"
@@ -18,32 +19,31 @@ type PaymentResult struct {
 	TargetBalance    float64 // Limit * 0.10
 	PaymentNeeded    float64
 	DueDate          time.Time
+	HasOverride      bool
 }
 
-// CalculatePayment determines the payment needed for a card to maintain target utilization.
-func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time) (*PaymentResult, error) {
-	// Determine dates
-	// We need the *last* statement date to know what the statement balance is
-	// If StatementDay is 20, and today is Feb 12, last statement was Jan 20
+// GetStatementDate returns the last statement cutoff date for the given reference time.
+func GetStatementDate(card config.CardConfig, refTime time.Time) time.Time {
 	year, month, _ := refTime.Date()
-
-	// Construct potential statement date for this month
 	thisMonthStatement := mkDate(year, month, card.StatementDay)
 
 	var lastStatementDate time.Time
 	if refTime.After(thisMonthStatement) || refTime.Equal(thisMonthStatement) {
 		lastStatementDate = thisMonthStatement
 	} else {
-		// Go back to previous month
 		lastStatementDate = thisMonthStatement.AddDate(0, -1, 0)
-		// Handle month rolling edge cases (e.g. if StatementDay is 31 and prev month is Feb)
 		prevMonth := time.Date(year, month-1, 1, 0, 0, 0, 0, time.UTC)
 		lastStatementDate = mkDate(prevMonth.Year(), prevMonth.Month(), card.StatementDay)
 	}
 
-	// Apply configured grace days to the statement cutoff window to account for delayed posting
-	lastStatementDate = lastStatementDate.AddDate(0, 0, card.StatementGraceDays)
+	return lastStatementDate.AddDate(0, 0, card.StatementGraceDays)
+}
 
+// CalculatePayment determines the payment needed for a card to maintain target utilization.
+func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time) (*PaymentResult, error) {
+	// Determine dates
+	year, month, _ := refTime.Date()
+	lastStatementDate := GetStatementDate(card, refTime)
 	lastStatementStr := lastStatementDate.Format("2006-01-02")
 	refDateStr := refTime.Format("2006-01-02")
 
@@ -67,8 +67,16 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 
 	var statementBalance float64
 	var err error
-	if card.StatementBalanceOverride != nil {
-		statementBalance = *card.StatementBalanceOverride
+	hasOverride := false
+	
+	override, err := s.GetBalanceOverride(card.AccountNumber, lastStatementStr)
+	if err != nil {
+		slog.Error("Failed to check for balance override", "card", card.Name, "error", err)
+	}
+
+	if override != nil {
+		statementBalance = *override
+		hasOverride = true
 	} else {
 		statementBalance, err = getBalance(lastStatementStr)
 		if err != nil {
@@ -104,6 +112,7 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		TargetBalance:    targetBalance,
 		PaymentNeeded:    paymentNeeded,
 		DueDate:          dueDate,
+		HasOverride:      hasOverride,
 	}, nil
 }
 

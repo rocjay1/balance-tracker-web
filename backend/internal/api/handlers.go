@@ -79,6 +79,7 @@ type CardStatus struct {
 	TargetBalance    float64 `json:"target_balance"`
 	PaymentNeeded    float64 `json:"payment_needed"`
 	DueDate          string  `json:"due_date"`
+	HasOverride      bool    `json:"has_override"`
 }
 
 // StatusHandler returns the computed financial status for all configured cards.
@@ -99,6 +100,7 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 			TargetBalance:    res.TargetBalance,
 			PaymentNeeded:    res.PaymentNeeded,
 			DueDate:          res.DueDate.Format("2006-01-02"),
+			HasOverride:      res.HasOverride,
 		})
 	}
 
@@ -174,3 +176,56 @@ func (s *Server) TransactionsHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error encoding response", http.StatusInternalServerError)
 	}
 }
+
+// OverrideHandler handles saving and deleting statement balance overrides.
+func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
+	accountNumber := r.PathValue("account_number")
+	if accountNumber == "" {
+		http.Error(w, "Account number required", http.StatusBadRequest)
+		return
+	}
+
+	var matchedCard *config.CardConfig
+	for _, c := range s.config.Cards {
+		if c.AccountNumber == accountNumber {
+			matchedCard = &c
+			break
+		}
+	}
+	if matchedCard == nil {
+		http.Error(w, "Card not found", http.StatusNotFound)
+		return
+	}
+
+	stmtDate := calculator.GetStatementDate(*matchedCard, time.Now())
+	stmtDateStr := stmtDate.Format("2006-01-02")
+
+	switch r.Method {
+	case http.MethodPut:
+		var req struct {
+			StatementBalance float64 `json:"statement_balance"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+		if err := s.store.SetBalanceOverride(accountNumber, stmtDateStr, req.StatementBalance); err != nil {
+			slog.Error("Failed to set override", "error", err)
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+
+	case http.MethodDelete:
+		if err := s.store.DeleteBalanceOverride(accountNumber, stmtDateStr); err != nil {
+			slog.Error("Failed to delete override", "error", err)
+			http.Error(w, "Server error", http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+

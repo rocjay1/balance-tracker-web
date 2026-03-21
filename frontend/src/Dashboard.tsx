@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Card from './components/Card';
+import BalanceOverrideModal from './components/BalanceOverrideModal';
 
 interface CardData {
     card_name: string;
@@ -11,12 +12,14 @@ interface CardData {
     target_balance: number;
     payment_needed: number;
     due_date: string;
+    has_override: boolean;
 }
 
 const Dashboard: React.FC = () => {
     const [cards, setCards] = useState<CardData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
 
     const fetchCards = async () => {
         try {
@@ -103,7 +106,11 @@ const Dashboard: React.FC = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {cards.map((card, idx) => (
-                        <Card key={`${card.card_name}-${card.account_number}-${idx}`} {...card} />
+                        <Card 
+                            key={`${card.card_name}-${card.account_number}-${idx}`} 
+                            {...card} 
+                            onEditBalance={() => setSelectedCard(card)}
+                        />
                     ))}
                 </div>
 
@@ -113,6 +120,19 @@ const Dashboard: React.FC = () => {
                     </div>
                 )}
             </div>
+
+            <BalanceOverrideModal
+                isOpen={selectedCard !== null}
+                onClose={() => setSelectedCard(null)}
+                onSuccess={() => {
+                    setSelectedCard(null);
+                    fetchCards();
+                }}
+                cardName={selectedCard?.card_name || ''}
+                accountNumber={selectedCard?.account_number || ''}
+                currentBalance={selectedCard?.statement_balance || 0}
+                hasOverride={selectedCard?.has_override || false}
+            />
         </div>
     );
 };

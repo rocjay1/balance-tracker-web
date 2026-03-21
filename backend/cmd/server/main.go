@@ -54,10 +54,13 @@ func main() {
 	mux.HandleFunc("GET /api/transactions", middleware.AllowCors(srvHandler.TransactionsHandler))
 	mux.HandleFunc("POST /api/upload", middleware.AllowCors(srvHandler.UploadHandler))
 	mux.HandleFunc("POST /api/alerts/test", middleware.AllowCors(srvHandler.TestAlertHandler))
+	mux.HandleFunc("PUT /api/overrides/{account_number}", middleware.AllowCors(srvHandler.OverrideHandler))
+	mux.HandleFunc("DELETE /api/overrides/{account_number}", middleware.AllowCors(srvHandler.OverrideHandler))
 	mux.HandleFunc("OPTIONS /api/status", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/transactions", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/upload", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/alerts/test", middleware.AllowCors(srvHandler.HealthHandler))
+	mux.HandleFunc("OPTIONS /api/overrides/{account_number}", middleware.AllowCors(srvHandler.HealthHandler))
 
 	// Create HTTP Server with request logging
 	srv := &http.Server{

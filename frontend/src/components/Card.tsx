@@ -9,6 +9,8 @@ interface CardProps {
     target_balance: number;
     payment_needed: number;
     due_date: string;
+    has_override?: boolean;
+    onEditBalance?: () => void;
 }
 
 const Card: React.FC<CardProps> = ({
@@ -20,6 +22,8 @@ const Card: React.FC<CardProps> = ({
     target_balance,
     payment_needed,
     due_date,
+    has_override,
+    onEditBalance,
 }) => {
     const isPaid = payment_needed === 0;
     const statusColor = isPaid ? 'bg-green-500' : 'bg-red-500';
@@ -44,7 +48,20 @@ const Card: React.FC<CardProps> = ({
                 <div className="pt-2 border-t border-gray-100">
                     <div className="flex justify-between items-center text-sm mb-1">
                         <span className="text-gray-500">Statement Bal</span>
-                        <span className="font-medium">${statement_balance.toFixed(2)}</span>
+                        <div className="flex items-center gap-2">
+                            {has_override && (
+                                <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded font-medium" title="Balance is manually overridden">
+                                    Override
+                                </span>
+                            )}
+                            <button 
+                                onClick={onEditBalance}
+                                className="font-medium hover:text-blue-600 hover:underline transition-colors focus:outline-none"
+                                title="Edit statement balance"
+                            >
+                                ${statement_balance.toFixed(2)}
+                            </button>
+                        </div>
                     </div>
                     <div className="flex justify-between items-center text-sm mb-1">
                         <span className="text-gray-500">Current Bal</span>

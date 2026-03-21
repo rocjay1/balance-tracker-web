@@ -27,7 +27,6 @@ type CardConfig struct {
 	StartingBalance    float64 `yaml:"starting_balance"` // Balance as of StartingDate
 	StartingDate       string   `yaml:"starting_date"`    // YYYY-MM-DD
 	StatementGraceDays int      `yaml:"statement_grace_days"`
-	StatementBalanceOverride *float64 `yaml:"statement_balance_override,omitempty"`
 }
 
 // SMTPConfig holds SMTP server credentials for outbound email.
