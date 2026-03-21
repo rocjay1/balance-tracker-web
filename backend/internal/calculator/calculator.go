@@ -87,14 +87,11 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get current balance: %w", err)
 	}
-
-	// If there's an override, the discrepancy in the statement balance likely 
-	// means those same transactions are missing/miscalculated in the current balance.
-	// We apply the exact same delta to the current balance.
-	if hasOverride {
-		delta := statementBalance - calculatedStatementBalance
-		currentBalance += delta
-	}
+	// We purposefully DO NOT apply the statement delta to the current balance.
+	// Discrepancies between calculated and overridden statement balances are almost
+	// always due to cutoff date/grace period misalignment with the bank's true cycle, 
+	// rather than entirely missing transactions. The overall transaction sum (Current Balance)
+	// remains correct.
 
 	// Logic
 	projectedBalance := currentBalance - statementBalance
