@@ -71,15 +71,16 @@ func (s *Server) HealthHandler(w http.ResponseWriter, r *http.Request) {
 
 // CardStatus represents the computed financial status of a single credit card.
 type CardStatus struct {
-	CardName         string  `json:"card_name"`
-	AccountNumber    string  `json:"account_number"`
-	StatementBalance float64 `json:"statement_balance"`
-	CurrentBalance   float64 `json:"current_balance"`
-	ProjectedBalance float64 `json:"projected_balance"`
-	TargetBalance    float64 `json:"target_balance"`
-	PaymentNeeded    float64 `json:"payment_needed"`
-	DueDate          string  `json:"due_date"`
-	HasOverride      bool    `json:"has_override"`
+	CardName           string  `json:"card_name"`
+	AccountNumber      string  `json:"account_number"`
+	StatementBalance   float64 `json:"statement_balance"`
+	CurrentBalance     float64 `json:"current_balance"`
+	ProjectedBalance   float64 `json:"projected_balance"`
+	TargetBalance      float64 `json:"target_balance"`
+	PaymentNeeded      float64 `json:"payment_needed"`
+	DueDate            string  `json:"due_date"`
+	HasOverride        bool    `json:"has_override"`
+	HasCurrentOverride bool    `json:"has_current_override"`
 }
 
 // StatusHandler returns the computed financial status for all configured cards.
@@ -92,15 +93,16 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		statuses = append(statuses, CardStatus{
-			CardName:         card.Name,
-			AccountNumber:    card.AccountNumber,
-			StatementBalance: res.StatementBalance,
-			CurrentBalance:   res.CurrentBalance,
-			ProjectedBalance: res.ProjectedBalance,
-			TargetBalance:    res.TargetBalance,
-			PaymentNeeded:    res.PaymentNeeded,
-			DueDate:          res.DueDate.Format("2006-01-02"),
-			HasOverride:      res.HasOverride,
+			CardName:           card.Name,
+			AccountNumber:      card.AccountNumber,
+			StatementBalance:   res.StatementBalance,
+			CurrentBalance:     res.CurrentBalance,
+			ProjectedBalance:   res.ProjectedBalance,
+			TargetBalance:      res.TargetBalance,
+			PaymentNeeded:      res.PaymentNeeded,
+			DueDate:            res.DueDate.Format("2006-01-02"),
+			HasOverride:        res.HasOverride,
+			HasCurrentOverride: res.HasCurrentOverride,
 		})
 	}
 
@@ -203,13 +205,18 @@ func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPut:
 		var req struct {
-			StatementBalance float64 `json:"statement_balance"`
+			StatementBalance *float64 `json:"statement_balance"`
+			CurrentBalance   *float64 `json:"current_balance"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			http.Error(w, "Invalid request body", http.StatusBadRequest)
 			return
 		}
-		if err := s.store.SetBalanceOverride(accountNumber, stmtDateStr, req.StatementBalance); err != nil {
+		if req.StatementBalance == nil && req.CurrentBalance == nil {
+			http.Error(w, "At least one of statement_balance or current_balance is required", http.StatusBadRequest)
+			return
+		}
+		if err := s.store.SetBalanceOverride(accountNumber, stmtDateStr, req.StatementBalance, req.CurrentBalance); err != nil {
 			slog.Error("Failed to set override", "error", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
@@ -217,7 +224,12 @@ func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 
 	case http.MethodDelete:
-		if err := s.store.DeleteBalanceOverride(accountNumber, stmtDateStr); err != nil {
+		field := r.URL.Query().Get("field")
+		if field != "statement_balance" && field != "current_balance" {
+			http.Error(w, "field query parameter must be 'statement_balance' or 'current_balance'", http.StatusBadRequest)
+			return
+		}
+		if err := s.store.DeleteBalanceOverride(accountNumber, stmtDateStr, field); err != nil {
 			slog.Error("Failed to delete override", "error", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
@@ -228,4 +240,3 @@ func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
-

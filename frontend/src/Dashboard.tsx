@@ -13,13 +13,19 @@ interface CardData {
     payment_needed: number;
     due_date: string;
     has_override: boolean;
+    has_current_override: boolean;
 }
+
+type ModalState = {
+    card: CardData;
+    field: 'statement_balance' | 'current_balance';
+} | null;
 
 const Dashboard: React.FC = () => {
     const [cards, setCards] = useState<CardData[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [selectedCard, setSelectedCard] = useState<CardData | null>(null);
+    const [modalState, setModalState] = useState<ModalState>(null);
 
     const fetchCards = async () => {
         try {
@@ -109,7 +115,8 @@ const Dashboard: React.FC = () => {
                         <Card 
                             key={`${card.card_name}-${card.account_number}-${idx}`} 
                             {...card} 
-                            onEditBalance={() => setSelectedCard(card)}
+                            onEditBalance={() => setModalState({ card, field: 'statement_balance' })}
+                            onEditCurrentBalance={() => setModalState({ card, field: 'current_balance' })}
                         />
                     ))}
                 </div>
@@ -122,16 +129,25 @@ const Dashboard: React.FC = () => {
             </div>
 
             <BalanceOverrideModal
-                isOpen={selectedCard !== null}
-                onClose={() => setSelectedCard(null)}
+                isOpen={modalState !== null}
+                onClose={() => setModalState(null)}
                 onSuccess={() => {
-                    setSelectedCard(null);
+                    setModalState(null);
                     fetchCards();
                 }}
-                cardName={selectedCard?.card_name || ''}
-                accountNumber={selectedCard?.account_number || ''}
-                currentBalance={selectedCard?.statement_balance || 0}
-                hasOverride={selectedCard?.has_override || false}
+                cardName={modalState?.card.card_name || ''}
+                accountNumber={modalState?.card.account_number || ''}
+                balanceValue={
+                    modalState?.field === 'current_balance'
+                        ? (modalState?.card.current_balance || 0)
+                        : (modalState?.card.statement_balance || 0)
+                }
+                hasOverride={
+                    modalState?.field === 'current_balance'
+                        ? (modalState?.card.has_current_override || false)
+                        : (modalState?.card.has_override || false)
+                }
+                field={modalState?.field || 'statement_balance'}
             />
         </div>
     );
