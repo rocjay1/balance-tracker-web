@@ -22,6 +22,10 @@ const TransactionsPage: React.FC = () => {
     const [accountFilter, setAccountFilter] = useState('');
     const [dateFrom, setDateFrom] = useState('');
     const [dateTo, setDateTo] = useState('');
+
+    // Pagination
+    const [rowsPerPage, setRowsPerPage] = useState(50);
+    const [currentPage, setCurrentPage] = useState(1);
     
     // Dynamic lists for filters
     const [availableAccounts, setAvailableAccounts] = useState<{name: string, number: string}[]>([]);
@@ -80,6 +84,7 @@ const TransactionsPage: React.FC = () => {
 
     useEffect(() => {
         fetchTransactions();
+        setCurrentPage(1);
     }, [accountFilter, dateFrom, dateTo]);
 
     const formatCurrency = (amount: number) => {
@@ -152,6 +157,7 @@ const TransactionsPage: React.FC = () => {
                         </div>
 
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1 invisible">Clear</label>
                             <button 
                                 onClick={() => { setAccountFilter(''); setDateFrom(''); setDateTo(''); }}
                                 className="py-2 px-4 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
@@ -184,7 +190,7 @@ const TransactionsPage: React.FC = () => {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {transactions.length > 0 ? (
-                                    transactions.map((t, idx) => (
+                                    transactions.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((t, idx) => (
                                         <tr key={t.Hash || idx} className="hover:bg-slate-50 transition-colors group">
                                             <td className="py-4 px-6 text-sm text-gray-600 whitespace-nowrap">{t.Date}</td>
                                             <td className="py-4 px-6 text-sm">
@@ -218,6 +224,43 @@ const TransactionsPage: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Pagination Footer */}
+                    {transactions.length > 0 && (
+                        <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-600">
+                            <div className="flex items-center gap-2">
+                                <span>Rows per page:</span>
+                                <select
+                                    className="bg-white border border-gray-300 rounded-md py-1 px-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                    value={rowsPerPage}
+                                    onChange={(e) => { setRowsPerPage(Number(e.target.value)); setCurrentPage(1); }}
+                                >
+                                    <option value={50}>50</option>
+                                    <option value={100}>100</option>
+                                    <option value={200}>200</option>
+                                </select>
+                            </div>
+                            <div className="flex items-center gap-3">
+                                <span>
+                                    {Math.min((currentPage - 1) * rowsPerPage + 1, transactions.length)}&ndash;{Math.min(currentPage * rowsPerPage, transactions.length)} of {transactions.length}
+                                </span>
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                    disabled={currentPage === 1}
+                                    className="py-1 px-3 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    Previous
+                                </button>
+                                <button
+                                    onClick={() => setCurrentPage(p => Math.min(Math.ceil(transactions.length / rowsPerPage), p + 1))}
+                                    disabled={currentPage >= Math.ceil(transactions.length / rowsPerPage)}
+                                    className="py-1 px-3 bg-white border border-gray-300 rounded-md text-sm font-medium hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
