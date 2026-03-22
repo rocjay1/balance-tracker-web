@@ -119,7 +119,7 @@ const TransactionsPage: React.FC = () => {
 
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-8">
                     {/* Filters Bar */}
-                    <div className="p-5 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-4 items-end">
+                    <div className="p-5 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-4 items-start">
                         <div className="flex-1 min-w-[200px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
                             <select 
