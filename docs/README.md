@@ -16,5 +16,6 @@ This directory contains supplemental guides, and maintenance strategies for the 
 ## 🔐 Infrastructure Config & Secrets
 
 To ensure secure configuration management:
+
 - **Application Values**: Modeled with `backend/config.yaml` as detailed in the [Main README](../README.md).
 - **Environment Secrets**: Sensitive details (tokens, passwords) are encrypted with **Ansible Vault** within the separate `rocjay1-infrastructure` management repository. Plaintext secrets never touch Git.
