@@ -136,21 +136,21 @@ const TransactionsPage: React.FC = () => {
                             </select>
                         </div>
                         
-                        <div className="min-w-0 overflow-hidden md:flex-1 md:min-w-[150px]">
+                        <div className="min-w-0 md:flex-1 md:min-w-[150px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
                             <input 
                                 type="date" 
-                                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none"
+                                className="w-full min-w-0 bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none"
                                 value={dateFrom}
                                 onChange={(e) => setDateFrom(e.target.value)}
                             />
                         </div>
 
-                        <div className="min-w-0 overflow-hidden md:flex-1 md:min-w-[150px]">
+                        <div className="min-w-0 md:flex-1 md:min-w-[150px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
                             <input 
                                 type="date" 
-                                className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none"
+                                className="w-full min-w-0 bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none"
                                 value={dateTo}
                                 onChange={(e) => setDateTo(e.target.value)}
                             />
