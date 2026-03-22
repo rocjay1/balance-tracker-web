@@ -90,6 +90,14 @@ To manually build and push images (requires appropriate permissions):
 
 ---
 
+## ⚠️ Security Notice for Self-Hosting
+
+This application **does not** include built-in authentication. It is designed to be deployed securely behind an identity-aware proxy or VPN (such as Cloudflare Access, Tailscale, or Authelia).
+
+**Do not expose this application directly to the public internet without an authentication layer**, as doing so will fully expose your financial data and allow unauthorized users to upload or modify transactions.
+
+---
+
 ## 📝 License
 
 This project is private and intended for personal use unless otherwise specified.
