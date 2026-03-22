@@ -55,18 +55,22 @@ const TransactionsPage: React.FC = () => {
     const fetchAccounts = async () => {
         try {
             const response = await fetch('/api/status');
-            if (response.ok) {
-                const data = await response.json();
-                if (data) {
-                    const accounts = data.map((card: any) => ({
-                        name: card.card_name,
-                        number: card.account_number
-                    }));
-                    setAvailableAccounts(accounts);
-                }
+            if (!response.ok) {
+                throw new Error('Failed to fetch accounts');
+            }
+            const data: unknown = await response.json();
+            if (Array.isArray(data)) {
+                const accounts = data.map(card => {
+                    const c = card as Record<string, unknown>;
+                    return {
+                        name: typeof c.card_name === 'string' ? c.card_name : 'Unknown',
+                        number: typeof c.account_number === 'string' ? c.account_number : ''
+                    };
+                });
+                setAvailableAccounts(accounts);
             }
         } catch (err) {
-            console.error('Failed to fetch accounts:', err);
+            setError(err instanceof Error ? err.message : 'Unknown error');
         }
     };
 

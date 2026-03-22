@@ -43,7 +43,7 @@ func Parse(path string) ([]store.Transaction, error) {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("Frror reading line %d: %w", lineNum, err)
+			return nil, fmt.Errorf("Error reading line %d: %w", lineNum, err)
 		}
 		lineNum++
 
