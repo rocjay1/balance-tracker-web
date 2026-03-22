@@ -74,19 +74,23 @@ The project includes a `Makefile` to simplify common development tasks.
 
 ---
 
+## ⚙️ Configuration
+
+The backend application is configured via `backend/config.yaml`. Essential settings include:
+
+- **👥 Subscribers**: List of emails to receive automated alerts.
+- **💳 Credit Cards**: Details regarding limits, statement/due days, and target balances for utilization tracking.
+- **✉️ SMTP Services**: Mail server details and credentials for alert delivery (e.g., using Google App Passwords).
+
+---
+
 ## 🚢 Deployment & CI/CD
 
 This project follows a **GitOps** pattern, separating application code from infrastructure configuration.
 
-1. **CI/CD**: GitHub Actions builds and pushes multi-arch Docker images to the **GitHub Container Registry (GHCR)**.
+1. **Continuous Integration**: GitHub Actions builds and pushes **ARM64** Docker images for both backend and frontend to the **GitHub Container Registry (GHCR)** on pushes to `main`.
 2. **Infrastructure**: Deployment is managed via the [rocjay1-infrastructure](https://github.com/rocjay1/rocjay1-infrastructure) repository.
 3. **Automated Updates**: Integrated with **Watchtower** for seamless container updates on the target host.
-
-To manually build and push images (requires appropriate permissions):
-
-```bash
-./build_and_push.sh
-```
 
 ---
 

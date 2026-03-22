@@ -1,73 +1,55 @@
-# React + TypeScript + Vite
+# 🎨 Balance Tracker Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern dashboard interface for the Balance Tracker application, designed to manage financial balances, monitor credit utilization, and handle automated transaction imports.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Tech Stack
 
-## React Compiler
+- **Framework**: [React 19](https://react.dev/)
+- **Build Tool**: [Vite](https://vitejs.dev/)
+- **Navigation**: [React Router v7](https://reactrouter.com/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Getting Started
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+To run the frontend locally during development, navigate to the `frontend/` directory and perform the following steps:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Install Dependencies**:
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+   ```bash
+   npm install
+   ```
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+2. **Run Dev Server**:
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+   ```bash
+   npm run dev
+   ```
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+   The application will be available at `http://localhost:5173`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+> [!NOTE]
+> For common dev tasks, you can also use the top-level `Makefile` with targets like `make install-frontend` and `make dev-frontend`.
+
+---
+
+## ⚙️ Development Proxy
+
+To simplify local development and avoid CORS issues, this frontend is configured with a **Vite proxy** (in `vite.config.ts`) that forwards API requests:
+
+- **Local Path**: `/api/*`
+- **Forwards to**: `http://127.0.0.1:8080` (Default Backend Address)
+
+Ensure your **Go Backend** is running and listening on port `8080` for the dashboard to successfully pull information.
+
+---
+
+## 🚢 Production & Deployment
+
+This directory includes a `Dockerfile` for containerization.
+
+The image is automatically built and pushed to the **GitHub Container Registry (GHCR)** via the repository's `.github/workflows/deploy.yml` pipeline on pushes to the `main` branch. It is highly optimized for deployment on lightweight hardware (ARM64 architecture).
