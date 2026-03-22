@@ -136,7 +136,7 @@ const TransactionsPage: React.FC = () => {
                             </select>
                         </div>
                         
-                        <div className="md:flex-1 md:min-w-[150px]">
+                        <div className="min-w-0 overflow-hidden md:flex-1 md:min-w-[150px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
                             <input 
                                 type="date" 
@@ -146,7 +146,7 @@ const TransactionsPage: React.FC = () => {
                             />
                         </div>
 
-                        <div className="md:flex-1 md:min-w-[150px]">
+                        <div className="min-w-0 overflow-hidden md:flex-1 md:min-w-[150px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
                             <input 
                                 type="date" 
