@@ -95,7 +95,7 @@ const TransactionsPage: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 p-8 font-sans">
+        <div className="min-h-screen bg-gray-50 p-4 md:p-8 font-sans">
             <div className="max-w-7xl mx-auto">
                 <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
@@ -119,8 +119,8 @@ const TransactionsPage: React.FC = () => {
 
                 <div className="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden mb-8">
                     {/* Filters Bar */}
-                    <div className="p-5 bg-gray-50 border-b border-gray-100 flex flex-wrap gap-4 items-start">
-                        <div className="flex-1 min-w-[200px]">
+                    <div className="p-4 md:p-5 bg-gray-50 border-b border-gray-100 grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-3 items-end">
+                        <div className="sm:col-span-2 md:flex-1 md:min-w-[200px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">Account</label>
                             <select 
                                 className="w-full bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none"
@@ -136,7 +136,7 @@ const TransactionsPage: React.FC = () => {
                             </select>
                         </div>
                         
-                        <div className="flex-1 min-w-[150px]">
+                        <div className="md:flex-1 md:min-w-[150px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
                             <input 
                                 type="date" 
@@ -146,7 +146,7 @@ const TransactionsPage: React.FC = () => {
                             />
                         </div>
 
-                        <div className="flex-1 min-w-[150px]">
+                        <div className="md:flex-1 md:min-w-[150px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
                             <input 
                                 type="date" 
@@ -156,19 +156,18 @@ const TransactionsPage: React.FC = () => {
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1 invisible">Clear</label>
+                        <div className="sm:col-span-2 md:col-span-1">
                             <button 
                                 onClick={() => { setAccountFilter(''); setDateFrom(''); setDateTo(''); }}
-                                className="py-2 px-4 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                                className="w-full md:w-auto py-2 px-4 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 Clear Filters
                             </button>
                         </div>
                     </div>
 
-                    {/* Table */}
-                    <div className="overflow-x-auto relative min-h-[400px]">
+                    {/* Loading overlay */}
+                    <div className="relative min-h-[400px]">
                         {loading && transactions.length === 0 ? (
                             <div className="absolute inset-0 flex items-center justify-center bg-white/80 z-10">
                                 <span className="text-gray-500 font-medium flex items-center gap-2">
@@ -178,51 +177,85 @@ const TransactionsPage: React.FC = () => {
                             </div>
                         ) : null}
 
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                                <tr className="bg-white border-b border-gray-200">
-                                    <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
-                                    <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Account</th>
-                                    <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
-                                    <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
-                                    <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Amount</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-100">
-                                {transactions.length > 0 ? (
-                                    transactions.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((t, idx) => (
-                                        <tr key={t.Hash || idx} className="hover:bg-slate-50 transition-colors group">
-                                            <td className="py-4 px-6 text-sm text-gray-600 whitespace-nowrap">{t.Date}</td>
-                                            <td className="py-4 px-6 text-sm">
-                                                <div className="font-medium text-gray-900">{t.AccountName}</div>
-                                                <div className="text-xs text-gray-500">x{t.AccountNumber}</div>
-                                            </td>
-                                            <td className="py-4 px-6 text-sm text-gray-800 max-w-md truncate" title={t.Description}>
-                                                {t.Description}
-                                            </td>
-                                            <td className="py-4 px-6 text-sm">
-                                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                                                    {t.Category || 'Uncategorized'}
-                                                </span>
-                                            </td>
-                                            <td className="py-4 px-6 text-sm text-right whitespace-nowrap">
-                                                <span className={`font-semibold ${t.Amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                                                    {t.Amount < 0 ? '+' : ''}{formatCurrency(t.Amount * -1)}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    !loading && (
-                                        <tr>
-                                            <td colSpan={5} className="py-12 text-center text-gray-500">
-                                                No transactions found matching your criteria.
-                                            </td>
-                                        </tr>
-                                    )
-                                )}
-                            </tbody>
-                        </table>
+                        {/* Mobile card list */}
+                        <div className="md:hidden divide-y divide-gray-100">
+                            {transactions.length > 0 ? (
+                                transactions.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((t, idx) => (
+                                    <div key={t.Hash || idx} className="p-4 hover:bg-slate-50 transition-colors">
+                                        <div className="flex items-start justify-between gap-2 mb-1">
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm font-medium text-gray-900 truncate">{t.Description}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">{t.AccountName} &middot; x{t.AccountNumber}</p>
+                                            </div>
+                                            <span className={`text-sm font-semibold whitespace-nowrap ${t.Amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                {t.Amount < 0 ? '+' : ''}{formatCurrency(t.Amount * -1)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between mt-2">
+                                            <span className="text-xs text-gray-500">{t.Date}</span>
+                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                                {t.Category || 'Uncategorized'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                !loading && (
+                                    <p className="py-12 text-center text-gray-500 text-sm">
+                                        No transactions found matching your criteria.
+                                    </p>
+                                )
+                            )}
+                        </div>
+
+                        {/* Desktop table */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="bg-white border-b border-gray-200">
+                                        <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                                        <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Account</th>
+                                        <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category</th>
+                                        <th className="py-3 px-6 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {transactions.length > 0 ? (
+                                        transactions.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((t, idx) => (
+                                            <tr key={t.Hash || idx} className="hover:bg-slate-50 transition-colors group">
+                                                <td className="py-4 px-6 text-sm text-gray-600 whitespace-nowrap">{t.Date}</td>
+                                                <td className="py-4 px-6 text-sm">
+                                                    <div className="font-medium text-gray-900">{t.AccountName}</div>
+                                                    <div className="text-xs text-gray-500">x{t.AccountNumber}</div>
+                                                </td>
+                                                <td className="py-4 px-6 text-sm text-gray-800 max-w-md truncate" title={t.Description}>
+                                                    {t.Description}
+                                                </td>
+                                                <td className="py-4 px-6 text-sm">
+                                                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
+                                                        {t.Category || 'Uncategorized'}
+                                                    </span>
+                                                </td>
+                                                <td className="py-4 px-6 text-sm text-right whitespace-nowrap">
+                                                    <span className={`font-semibold ${t.Amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                        {t.Amount < 0 ? '+' : ''}{formatCurrency(t.Amount * -1)}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        !loading && (
+                                            <tr>
+                                                <td colSpan={5} className="py-12 text-center text-gray-500">
+                                                    No transactions found matching your criteria.
+                                                </td>
+                                            </tr>
+                                        )
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
 
                     {/* Pagination Footer */}
