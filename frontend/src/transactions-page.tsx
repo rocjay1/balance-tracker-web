@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 interface Transaction {
     Date: string;
@@ -20,8 +22,8 @@ const TransactionsPage: React.FC = () => {
 
     // Filters
     const [accountFilter, setAccountFilter] = useState('');
-    const [dateFrom, setDateFrom] = useState('');
-    const [dateTo, setDateTo] = useState('');
+    const [dateFrom, setDateFrom] = useState<Date | null>(null);
+    const [dateTo, setDateTo] = useState<Date | null>(null);
 
     // Pagination
     const [rowsPerPage, setRowsPerPage] = useState(50);
@@ -35,13 +37,20 @@ const TransactionsPage: React.FC = () => {
             setLoading(true);
             const params = new URLSearchParams();
             if (accountFilter) {
-                // simple split assuming format 'Name - Last4'
                 const [name, number] = accountFilter.split(' - ');
                 if (name) params.append('account_name', name.trim());
                 if (number) params.append('account_number', number.trim());
             }
-            if (dateFrom) params.append('date_from', dateFrom);
-            if (dateTo) params.append('date_to', dateTo);
+
+            const formatDate = (d: Date) => {
+                const year = d.getFullYear();
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                const day = String(d.getDate()).padStart(2, '0');
+                return `${year}-${month}-${day}`;
+            };
+
+            if (dateFrom) params.append('date_from', formatDate(dateFrom));
+            if (dateTo) params.append('date_to', formatDate(dateTo));
 
             const response = await fetch(`/api/transactions?${params.toString()}`);
             if (!response.ok) {
@@ -138,27 +147,29 @@ const TransactionsPage: React.FC = () => {
                         
                         <div className="min-w-0 md:flex-1 md:min-w-[150px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">From Date</label>
-                            <input 
-                                type="date" 
+                            <DatePicker
+                                selected={dateFrom}
+                                onChange={(date: Date | null) => setDateFrom(date)}
                                 className="w-full min-w-0 bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none"
-                                value={dateFrom}
-                                onChange={(e) => setDateFrom(e.target.value)}
+                                wrapperClassName="w-full"
+                                placeholderText="Select Date"
                             />
                         </div>
 
                         <div className="min-w-0 md:flex-1 md:min-w-[150px]">
                             <label className="block text-sm font-medium text-gray-700 mb-1">To Date</label>
-                            <input 
-                                type="date" 
+                            <DatePicker
+                                selected={dateTo}
+                                onChange={(date: Date | null) => setDateTo(date)}
                                 className="w-full min-w-0 bg-white border border-gray-300 rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-shadow outline-none"
-                                value={dateTo}
-                                onChange={(e) => setDateTo(e.target.value)}
+                                wrapperClassName="w-full"
+                                placeholderText="Select Date"
                             />
                         </div>
 
                         <div className="sm:col-span-2 md:col-span-1">
                             <button 
-                                onClick={() => { setAccountFilter(''); setDateFrom(''); setDateTo(''); }}
+                                onClick={() => { setAccountFilter(''); setDateFrom(null); setDateTo(null); }}
                                 className="w-full md:w-auto py-2 px-4 bg-white border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
                             >
                                 Clear Filters
