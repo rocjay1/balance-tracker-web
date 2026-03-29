@@ -72,11 +72,18 @@ func main() {
 	mux.HandleFunc("POST /api/alerts/test", middleware.AllowCors(srvHandler.TestAlertHandler))
 	mux.HandleFunc("PUT /api/overrides/{account_number}", middleware.AllowCors(srvHandler.OverrideHandler))
 	mux.HandleFunc("DELETE /api/overrides/{account_number}", middleware.AllowCors(srvHandler.OverrideHandler))
+	mux.HandleFunc("GET /api/config", middleware.AllowCors(srvHandler.ConfigHandler))
+	mux.HandleFunc("POST /api/config", middleware.AllowCors(srvHandler.ConfigHandler))
+	mux.HandleFunc("POST /api/cards", middleware.AllowCors(srvHandler.CardHandler))
+	mux.HandleFunc("DELETE /api/cards/{account_number}", middleware.AllowCors(srvHandler.CardHandler))
 	mux.HandleFunc("OPTIONS /api/status", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/transactions", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/upload", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/alerts/test", middleware.AllowCors(srvHandler.HealthHandler))
 	mux.HandleFunc("OPTIONS /api/overrides/{account_number}", middleware.AllowCors(srvHandler.HealthHandler))
+	mux.HandleFunc("OPTIONS /api/config", middleware.AllowCors(srvHandler.HealthHandler))
+	mux.HandleFunc("OPTIONS /api/cards", middleware.AllowCors(srvHandler.HealthHandler))
+	mux.HandleFunc("OPTIONS /api/cards/{account_number}", middleware.AllowCors(srvHandler.HealthHandler))
 
 	// Create HTTP Server with request logging
 	srv := &http.Server{

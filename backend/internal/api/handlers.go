@@ -229,3 +229,81 @@ func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	}
 }
+
+// ConfigHandler returns the current application configuration or updates it.
+func (s *Server) ConfigHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(s.config)
+
+	case http.MethodPost:
+		var newCfg config.Config
+		if err := json.NewDecoder(r.Body).Decode(&newCfg); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.store.SaveConfig(&newCfg); err != nil {
+			slog.Error("Failed to save config", "error", err)
+			http.Error(w, "Failed to save config", http.StatusInternalServerError)
+			return
+		}
+
+		s.config = &newCfg
+		w.WriteHeader(http.StatusOK)
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// CardHandler handles adding, updating, and removing cards.
+func (s *Server) CardHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodPost:
+		var card config.CardConfig
+		if err := json.NewDecoder(r.Body).Decode(&card); err != nil {
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.store.SaveCard(card); err != nil {
+			slog.Error("Failed to save card", "error", err)
+			http.Error(w, "Failed to save card", http.StatusInternalServerError)
+			return
+		}
+
+		// Refresh in-memory config
+		updatedCfg, err := s.store.GetConfig()
+		if err == nil {
+			s.config = updatedCfg
+		}
+
+		w.WriteHeader(http.StatusOK)
+
+	case http.MethodDelete:
+		accountNumber := r.PathValue("account_number")
+		if accountNumber == "" {
+			http.Error(w, "Account number required", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.store.DeleteCard(accountNumber); err != nil {
+			slog.Error("Failed to delete card", "error", err)
+			http.Error(w, "Failed to delete card", http.StatusInternalServerError)
+			return
+		}
+
+		// Refresh in-memory config
+		updatedCfg, err := s.store.GetConfig()
+		if err == nil {
+			s.config = updatedCfg
+		}
+
+		w.WriteHeader(http.StatusOK)
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
