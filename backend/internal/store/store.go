@@ -3,12 +3,15 @@ package store
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/rocjay1/balance-tracker-web/backend/internal/config"
 	_ "modernc.org/sqlite" // Pure Go SQLite driver
 )
 
@@ -140,6 +143,34 @@ func (s *Store) migrate() error {
 	`)
 	if err != nil {
 		return err
+	}
+
+	// New tables for configuration
+	_, err = s.db.Exec(`
+	CREATE TABLE IF NOT EXISTS cards (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		name TEXT NOT NULL,
+		account_number TEXT NOT NULL,
+		credit_limit REAL NOT NULL,
+		statement_day INTEGER NOT NULL,
+		due_day INTEGER NOT NULL,
+		starting_balance REAL DEFAULT 0.0,
+		starting_date TEXT,
+		statement_grace_days INTEGER DEFAULT 0,
+		UNIQUE(name, account_number)
+	);
+
+	CREATE TABLE IF NOT EXISTS subscribers (
+		email TEXT PRIMARY KEY
+	);
+
+	CREATE TABLE IF NOT EXISTS app_settings (
+		key TEXT PRIMARY KEY,
+		value TEXT NOT NULL
+	);
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create config tables: %w", err)
 	}
 
 	// Handle the transition from the old schema where statement_balance was NOT NULL
@@ -345,5 +376,146 @@ func (s *Store) DeleteBalanceOverride(accountNumber, statementDate string) error
 	WHERE account_number = ? AND statement_date = ?
 	`
 	_, err := s.db.Exec(query, accountNumber, statementDate)
+	return err
+}
+
+// GetConfig fetches the complete configuration from the database.
+func (s *Store) GetConfig() (*config.Config, error) {
+	cfg := &config.Config{}
+
+	// Fetch subscribers
+	rows, err := s.db.Query("SELECT email FROM subscribers")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch subscribers: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, err
+		}
+		cfg.Subscribers = append(cfg.Subscribers, email)
+	}
+
+	// Fetch cards
+	rows, err = s.db.Query("SELECT name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days FROM cards")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch cards: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var c config.CardConfig
+		if err := rows.Scan(&c.Name, &c.AccountNumber, &c.Limit, &c.StatementDay, &c.DueDay, &c.StartingBalance, &c.StartingDate, &c.StatementGraceDays); err != nil {
+			return nil, err
+		}
+		cfg.Cards = append(cfg.Cards, c)
+	}
+
+	// Fetch global settings
+	rows, err = s.db.Query("SELECT key, value FROM app_settings")
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch app_settings: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var key, val string
+		if err := rows.Scan(&key, &val); err != nil {
+			return nil, err
+		}
+		switch key {
+		case "alert_days_before_due":
+			cfg.AlertDaysBeforeDue, _ = strconv.Atoi(val)
+		case "timezone":
+			cfg.Timezone = val
+		case "smtp":
+			if err := json.Unmarshal([]byte(val), &cfg.SMTP); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal SMTP config: %w", err)
+			}
+		}
+	}
+
+	// Defaults if not in DB
+	if cfg.Timezone == "" {
+		cfg.Timezone = "America/Chicago"
+	}
+	if cfg.AlertDaysBeforeDue == 0 {
+		cfg.AlertDaysBeforeDue = 3
+	}
+
+	return cfg, nil
+}
+
+// SaveConfig performs a complete configuration sync to the database.
+func (s *Store) SaveConfig(cfg *config.Config) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	// 1. Clear existing
+	if _, err := tx.Exec("DELETE FROM subscribers"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("DELETE FROM cards"); err != nil {
+		return err
+	}
+	if _, err := tx.Exec("DELETE FROM app_settings"); err != nil {
+		return err
+	}
+
+	// 2. Insert subscribers
+	for _, email := range cfg.Subscribers {
+		if _, err := tx.Exec("INSERT INTO subscribers (email) VALUES (?)", email); err != nil {
+			return err
+		}
+	}
+
+	// 3. Insert cards
+	for _, c := range cfg.Cards {
+		if _, err := tx.Exec(`
+			INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays); err != nil {
+			return err
+		}
+	}
+
+	// 4. Insert global settings
+	settings := map[string]string{
+		"alert_days_before_due": strconv.Itoa(cfg.AlertDaysBeforeDue),
+		"timezone":              cfg.Timezone,
+	}
+	smtpJSON, _ := json.Marshal(cfg.SMTP)
+	settings["smtp"] = string(smtpJSON)
+
+	for k, v := range settings {
+		if _, err := tx.Exec("INSERT INTO app_settings (key, value) VALUES (?, ?)", k, v); err != nil {
+			return err
+		}
+	}
+
+	return tx.Commit()
+}
+
+// SaveCard upserts a card configuration.
+func (s *Store) SaveCard(c config.CardConfig) error {
+	_, err := s.db.Exec(`
+		INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(name, account_number) DO UPDATE SET
+			credit_limit = excluded.credit_limit,
+			statement_day = excluded.statement_day,
+			due_day = excluded.due_day,
+			starting_balance = excluded.starting_balance,
+			starting_date = excluded.starting_date,
+			statement_grace_days = excluded.statement_grace_days
+	`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays)
+	return err
+}
+
+// DeleteCard removes a card from tracking.
+func (s *Store) DeleteCard(accountNumber string) error {
+	_, err := s.db.Exec("DELETE FROM cards WHERE account_number = ?", accountNumber)
 	return err
 }

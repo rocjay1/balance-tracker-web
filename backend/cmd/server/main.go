@@ -31,15 +31,31 @@ func main() {
 	}
 	defer store.Close()
 
-	// Load Config
-	cfgPath := "config.yaml"
-	if envCfg := os.Getenv("CONFIG_PATH"); envCfg != "" {
-		cfgPath = envCfg
-	}
-	cfg, err := config.Load(cfgPath)
-	if err != nil {
-		slog.Error("Error loading config", "error", err)
-		os.Exit(1)
+	// Load Config (Prefer DB, fallback to config.yaml)
+	cfg, err := store.GetConfig()
+	if err != nil || len(cfg.Cards) == 0 {
+		slog.Info("No config in database, attempting to load from config.yaml")
+		cfgPath := "config.yaml"
+		if envCfg := os.Getenv("CONFIG_PATH"); envCfg != "" {
+			cfgPath = envCfg
+		}
+		
+		cfgYaml, yamlErr := config.Load(cfgPath)
+		if yamlErr == nil {
+			slog.Info("Migrating config from yaml to database")
+			if err := store.SaveConfig(cfgYaml); err != nil {
+				slog.Error("Failed to migrate config to database", "error", err)
+			} else {
+				cfg = cfgYaml
+			}
+		} else if err != nil {
+			// If we had a real DB error and no YAML, we can't continue
+			slog.Error("Error loading config from database and config.yaml not found", "db_error", err, "yaml_error", yamlErr)
+			os.Exit(1)
+		} else if len(cfg.Cards) == 0 {
+			slog.Error("No configuration found in database or config.yaml")
+			os.Exit(1)
+		}
 	}
 
 	// Initialize Mailer
