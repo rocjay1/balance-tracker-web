@@ -155,6 +155,7 @@ func (s *Store) migrate() error {
 	CREATE TABLE IF NOT EXISTS cards (
 		id INTEGER PRIMARY KEY AUTOINCREMENT,
 		name TEXT NOT NULL,
+		import_name TEXT DEFAULT '',
 		account_number TEXT NOT NULL,
 		credit_limit REAL NOT NULL,
 		statement_day INTEGER NOT NULL,
@@ -403,14 +404,14 @@ func (s *Store) GetConfig(ctx context.Context) (*config.Config, error) {
 	}
 
 	// Fetch cards
-	rows, err = s.db.QueryContext(ctx, "SELECT id, name, import_name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days FROM cards")
+	rows, err = s.db.QueryContext(ctx, "SELECT id, name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days, import_name FROM cards")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cards: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var c config.CardConfig
-		if err := rows.Scan(&c.ID, &c.Name, &c.ImportName, &c.AccountNumber, &c.Limit, &c.StatementDay, &c.DueDay, &c.StartingBalance, &c.StartingDate, &c.StatementGraceDays); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.AccountNumber, &c.Limit, &c.StatementDay, &c.DueDay, &c.StartingBalance, &c.StartingDate, &c.StatementGraceDays, &c.ImportName); err != nil {
 			return nil, err
 		}
 		cfg.Cards = append(cfg.Cards, c)
@@ -479,9 +480,9 @@ func (s *Store) SaveConfig(ctx context.Context, cfg *config.Config) error {
 	// 3. Insert cards
 	for _, c := range cfg.Cards {
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO cards (name, import_name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days) 
+			INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days, import_name) 
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, c.Name, c.ImportName, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays); err != nil {
+		`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays, c.ImportName); err != nil {
 			return err
 		}
 	}
@@ -509,31 +510,31 @@ func (s *Store) SaveCard(ctx context.Context, c config.CardConfig) error {
 		_, err := s.db.ExecContext(ctx, `
 			UPDATE cards SET 
 				name = ?, 
-				import_name = ?,
 				account_number = ?, 
 				credit_limit = ?, 
 				statement_day = ?, 
 				due_day = ?, 
 				starting_balance = ?, 
 				starting_date = ?, 
-				statement_grace_days = ? 
+				statement_grace_days = ?,
+				import_name = ?
 			WHERE id = ?
-		`, c.Name, c.ImportName, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays, c.ID)
+		`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays, c.ImportName, c.ID)
 		return err
 	}
 
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO cards (name, import_name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days)
+		INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days, import_name)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(name, account_number) DO UPDATE SET
-			import_name = excluded.import_name,
 			credit_limit = excluded.credit_limit,
 			statement_day = excluded.statement_day,
 			due_day = excluded.due_day,
 			starting_balance = excluded.starting_balance,
 			starting_date = excluded.starting_date,
-			statement_grace_days = excluded.statement_grace_days
-	`, c.Name, c.ImportName, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays)
+			statement_grace_days = excluded.statement_grace_days,
+			import_name = excluded.import_name
+	`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays, c.ImportName)
 	return err
 }
 
