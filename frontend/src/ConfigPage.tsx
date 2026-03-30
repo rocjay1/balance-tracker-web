@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 interface CardConfig {
     ID?: number;
     Name: string;
+    ImportName?: string;
     AccountNumber: string;
     Limit: number;
     StatementDay: number;
@@ -131,6 +132,7 @@ const ConfigPage: React.FC = () => {
         setEditingCard({
             ID: 0,
             Name: '',
+            ImportName: '',
             AccountNumber: '',
             Limit: 0,
             StatementDay: 1,
@@ -356,6 +358,16 @@ const ConfigPage: React.FC = () => {
                                         value={editingCard.Name}
                                         onChange={(e) => setEditingCard({ ...editingCard, Name: e.target.value })}
                                         placeholder="e.g. Chase Sapphire"
+                                    />
+                                </div>
+                                <div className="col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Import Name (Optional)</label>
+                                    <input 
+                                        type="text" 
+                                        className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                                        value={editingCard.ImportName || ''}
+                                        onChange={(e) => setEditingCard({ ...editingCard, ImportName: e.target.value })}
+                                        placeholder="e.g. Discover (Used to match CSV transactions)"
                                     />
                                 </div>
                                 <div>

@@ -29,3 +29,4 @@ balance-tracker-images.tar
 # Project Specific
 .gemini
 backend/finance.db
+finance.db

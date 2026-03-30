@@ -131,6 +131,10 @@ func (s *Store) migrate() error {
 	alterQuery := `ALTER TABLE transactions ADD COLUMN institution_name TEXT DEFAULT '';`
 	s.db.Exec(alterQuery) // Ignore error if column exists
 
+	// Migration: Add import_name to cards if not exists
+	alterCardsQuery := `ALTER TABLE cards ADD COLUMN import_name TEXT DEFAULT '';`
+	s.db.Exec(alterCardsQuery) // Ignore error if column exists
+
 	// Create or update balance_overrides table with statement_balance as nullable
 	_, err := s.db.Exec(`
 	CREATE TABLE IF NOT EXISTS balance_overrides (
@@ -399,14 +403,14 @@ func (s *Store) GetConfig(ctx context.Context) (*config.Config, error) {
 	}
 
 	// Fetch cards
-	rows, err = s.db.QueryContext(ctx, "SELECT id, name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days FROM cards")
+	rows, err = s.db.QueryContext(ctx, "SELECT id, name, import_name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days FROM cards")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cards: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var c config.CardConfig
-		if err := rows.Scan(&c.ID, &c.Name, &c.AccountNumber, &c.Limit, &c.StatementDay, &c.DueDay, &c.StartingBalance, &c.StartingDate, &c.StatementGraceDays); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.ImportName, &c.AccountNumber, &c.Limit, &c.StatementDay, &c.DueDay, &c.StartingBalance, &c.StartingDate, &c.StatementGraceDays); err != nil {
 			return nil, err
 		}
 		cfg.Cards = append(cfg.Cards, c)
@@ -475,9 +479,9 @@ func (s *Store) SaveConfig(ctx context.Context, cfg *config.Config) error {
 	// 3. Insert cards
 	for _, c := range cfg.Cards {
 		if _, err := tx.ExecContext(ctx, `
-			INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days) 
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-		`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays); err != nil {
+			INSERT INTO cards (name, import_name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, c.Name, c.ImportName, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays); err != nil {
 			return err
 		}
 	}
@@ -505,6 +509,7 @@ func (s *Store) SaveCard(ctx context.Context, c config.CardConfig) error {
 		_, err := s.db.ExecContext(ctx, `
 			UPDATE cards SET 
 				name = ?, 
+				import_name = ?,
 				account_number = ?, 
 				credit_limit = ?, 
 				statement_day = ?, 
@@ -513,21 +518,22 @@ func (s *Store) SaveCard(ctx context.Context, c config.CardConfig) error {
 				starting_date = ?, 
 				statement_grace_days = ? 
 			WHERE id = ?
-		`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays, c.ID)
+		`, c.Name, c.ImportName, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays, c.ID)
 		return err
 	}
 
 	_, err := s.db.ExecContext(ctx, `
-		INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO cards (name, import_name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(name, account_number) DO UPDATE SET
+			import_name = excluded.import_name,
 			credit_limit = excluded.credit_limit,
 			statement_day = excluded.statement_day,
 			due_day = excluded.due_day,
 			starting_balance = excluded.starting_balance,
 			starting_date = excluded.starting_date,
 			statement_grace_days = excluded.statement_grace_days
-	`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays)
+	`, c.Name, c.ImportName, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays)
 	return err
 }
 

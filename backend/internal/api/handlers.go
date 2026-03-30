@@ -151,6 +151,15 @@ func (s *Server) TransactionsHandler(w http.ResponseWriter, r *http.Request) {
 	dateFrom := q.Get("date_from")
 	dateTo := q.Get("date_to")
 
+	if accountName != "" {
+		for _, c := range s.config.Cards {
+			if c.Name == accountName && c.ImportName != "" {
+				accountName = c.ImportName
+				break
+			}
+		}
+	}
+
 	txs, err := s.store.GetTransactions(ctx, accountName, accountNumber, dateFrom, dateTo)
 	if err != nil {
 		slog.Error("Error querying transactions", "error", err)

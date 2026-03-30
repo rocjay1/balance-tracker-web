@@ -19,15 +19,16 @@ type Config struct {
 
 // CardConfig describes a single credit card to track.
 type CardConfig struct {
-	ID                 int64   `yaml:"id"`
-	Name               string  `yaml:"name"`
-	AccountNumber      string  `yaml:"account_number"` // Optional, for disambiguation
-	Limit              float64 `yaml:"limit"`
-	StatementDay       int     `yaml:"statement_day"`
-	DueDay             int     `yaml:"due_day"`
-	StartingBalance    float64 `yaml:"starting_balance"` // Balance as of StartingDate
-	StartingDate       string  `yaml:"starting_date"`    // YYYY-MM-DD
-	StatementGraceDays int     `yaml:"statement_grace_days"`
+	ID                 int64   `yaml:"id" json:"id"`
+	Name               string  `yaml:"name" json:"name"`
+	ImportName         string  `yaml:"import_name" json:"import_name"` // Used for matching transactions
+	AccountNumber      string  `yaml:"account_number" json:"account_number"` // Optional, for disambiguation
+	Limit              float64 `yaml:"limit" json:"limit"`
+	StatementDay       int     `yaml:"statement_day" json:"statement_day"`
+	DueDay             int     `yaml:"due_day" json:"due_day"`
+	StartingBalance    float64 `yaml:"starting_balance" json:"starting_balance"` // Balance as of StartingDate
+	StartingDate       string  `yaml:"starting_date" json:"starting_date"`    // YYYY-MM-DD
+	StatementGraceDays int     `yaml:"statement_grace_days" json:"statement_grace_days"`
 }
 
 // SMTPConfig holds SMTP server credentials for outbound email.

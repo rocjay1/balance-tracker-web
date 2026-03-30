@@ -58,7 +58,12 @@ func CalculatePayment(ctx context.Context, s *store.Store, card config.CardConfi
 			bal = card.StartingBalance
 		}
 
-		dbBal, err := s.GetBalanceSince(ctx, card.Name, card.AccountNumber, fromDate, until)
+		matchName := card.Name
+		if card.ImportName != "" {
+			matchName = card.ImportName
+		}
+
+		dbBal, err := s.GetBalanceSince(ctx, matchName, card.AccountNumber, fromDate, until)
 		if err != nil {
 			return 0, err
 		}
