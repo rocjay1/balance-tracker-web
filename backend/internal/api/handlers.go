@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/rocjay1/balance-tracker-web/backend/internal/alerts"
@@ -273,13 +274,19 @@ func (s *Server) CardHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 
 	case http.MethodDelete:
-		accountNumber := r.PathValue("account_number")
-		if accountNumber == "" {
-			http.Error(w, "Account number required", http.StatusBadRequest)
+		idStr := r.PathValue("id")
+		if idStr == "" {
+			http.Error(w, "ID required", http.StatusBadRequest)
 			return
 		}
 
-		if err := s.store.DeleteCard(ctx, accountNumber); err != nil {
+		id, err := strconv.ParseInt(idStr, 10, 64)
+		if err != nil {
+			http.Error(w, "Invalid ID", http.StatusBadRequest)
+			return
+		}
+
+		if err := s.store.DeleteCard(ctx, id); err != nil {
 			slog.Error("Failed to delete card", "error", err)
 			http.Error(w, "Failed to delete card", http.StatusInternalServerError)
 			return

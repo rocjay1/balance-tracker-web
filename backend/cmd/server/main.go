@@ -81,7 +81,7 @@ func main() {
 	mux.HandleFunc("GET /api/config", srvHandler.ConfigHandler)
 	mux.HandleFunc("POST /api/config", srvHandler.ConfigHandler)
 	mux.HandleFunc("POST /api/cards", srvHandler.CardHandler)
-	mux.HandleFunc("DELETE /api/cards/{account_number}", srvHandler.CardHandler)
+	mux.HandleFunc("DELETE /api/cards/{id}", srvHandler.CardHandler)
 
 	// Middleware stack
 	stack := middleware.Chain(

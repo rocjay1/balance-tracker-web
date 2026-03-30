@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 interface CardConfig {
+    ID?: number;
     Name: string;
     AccountNumber: string;
     Limit: number;
@@ -79,13 +80,14 @@ const ConfigPage: React.FC = () => {
         }
     };
 
-    const handleDeleteCard = async (accountNumber: string) => {
-        if (!window.confirm(`Are you sure you want to delete card ending in ${accountNumber}?`)) {
+    const handleDeleteCard = async (card: CardConfig) => {
+        if (card.ID === undefined) return;
+        if (!window.confirm(`Are you sure you want to delete ${card.Name}?`)) {
             return;
         }
 
         try {
-            const response = await fetch(`/api/cards/${accountNumber}`, {
+            const response = await fetch(`/api/cards/${card.ID}`, {
                 method: 'DELETE',
             });
 
@@ -127,6 +129,7 @@ const ConfigPage: React.FC = () => {
 
     const openAddCard = () => {
         setEditingCard({
+            ID: 0,
             Name: '',
             AccountNumber: '',
             Limit: 0,
@@ -248,7 +251,7 @@ const ConfigPage: React.FC = () => {
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
                                         {config.Cards.map((card) => (
-                                            <tr key={card.AccountNumber} className="hover:bg-gray-50 transition-colors">
+                                            <tr key={card.ID} className="hover:bg-gray-50 transition-colors">
                                                 <td className="py-4 px-6 text-sm font-medium text-gray-900">{card.Name}</td>
                                                 <td className="py-4 px-6 text-sm text-gray-600">x{card.AccountNumber}</td>
                                                 <td className="py-4 px-6 text-sm text-gray-900 text-right font-mono">${card.Limit.toLocaleString()}</td>
@@ -263,7 +266,7 @@ const ConfigPage: React.FC = () => {
                                                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
                                                         </button>
                                                         <button 
-                                                            onClick={() => handleDeleteCard(card.AccountNumber)}
+                                                            onClick={() => handleDeleteCard(card)}
                                                             className="p-1.5 text-red-600 hover:bg-red-50 rounded-md transition-colors"
                                                             title="Delete"
                                                         >
@@ -337,7 +340,7 @@ const ConfigPage: React.FC = () => {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <h3 className="text-lg font-bold text-gray-900">{editingCard.AccountNumber ? 'Edit Card' : 'Add New Card'}</h3>
+                            <h3 className="text-lg font-bold text-gray-900">{editingCard.ID ? 'Edit Card' : 'Add New Card'}</h3>
                             <button onClick={() => setIsCardModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>

@@ -399,14 +399,14 @@ func (s *Store) GetConfig(ctx context.Context) (*config.Config, error) {
 	}
 
 	// Fetch cards
-	rows, err = s.db.QueryContext(ctx, "SELECT name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days FROM cards")
+	rows, err = s.db.QueryContext(ctx, "SELECT id, name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days FROM cards")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cards: %w", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var c config.CardConfig
-		if err := rows.Scan(&c.Name, &c.AccountNumber, &c.Limit, &c.StatementDay, &c.DueDay, &c.StartingBalance, &c.StartingDate, &c.StatementGraceDays); err != nil {
+		if err := rows.Scan(&c.ID, &c.Name, &c.AccountNumber, &c.Limit, &c.StatementDay, &c.DueDay, &c.StartingBalance, &c.StartingDate, &c.StatementGraceDays); err != nil {
 			return nil, err
 		}
 		cfg.Cards = append(cfg.Cards, c)
@@ -501,6 +501,22 @@ func (s *Store) SaveConfig(ctx context.Context, cfg *config.Config) error {
 
 // SaveCard upserts a card configuration.
 func (s *Store) SaveCard(ctx context.Context, c config.CardConfig) error {
+	if c.ID > 0 {
+		_, err := s.db.ExecContext(ctx, `
+			UPDATE cards SET 
+				name = ?, 
+				account_number = ?, 
+				credit_limit = ?, 
+				statement_day = ?, 
+				due_day = ?, 
+				starting_balance = ?, 
+				starting_date = ?, 
+				statement_grace_days = ? 
+			WHERE id = ?
+		`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays, c.ID)
+		return err
+	}
+
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -516,7 +532,7 @@ func (s *Store) SaveCard(ctx context.Context, c config.CardConfig) error {
 }
 
 // DeleteCard removes a card from tracking.
-func (s *Store) DeleteCard(ctx context.Context, accountNumber string) error {
-	_, err := s.db.ExecContext(ctx, "DELETE FROM cards WHERE account_number = ?", accountNumber)
+func (s *Store) DeleteCard(ctx context.Context, id int64) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM cards WHERE id = ?", id)
 	return err
 }
