@@ -1,7 +1,7 @@
-// Package alerts checks card payment schedules and sends email notifications.
 package alerts
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -13,7 +13,7 @@ import (
 )
 
 // CheckAndSendAlerts checks if any card has a payment due in AlertDaysBeforeDue days or fewer.
-func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, refTime time.Time, force bool) {
+func CheckAndSendAlerts(ctx context.Context, s *store.Store, cfg *config.Config, m *mailer.Mailer, refTime time.Time, force bool) {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		slog.Warn("Failed to load timezone, defaulting to UTC", "timezone", cfg.Timezone, "error", err)
@@ -27,7 +27,7 @@ func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, re
 	slog.Info("Starting daily alert check", "now", now)
 
 	for _, card := range cfg.Cards {
-		res, err := calculator.CalculatePayment(s, card, now)
+		res, err := calculator.CalculatePayment(ctx, s, card, now)
 		if err != nil {
 			slog.Error("Error calculating payment in alert check", "card", card.Name, "error", err)
 			continue

@@ -2,6 +2,7 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -45,7 +46,7 @@ func New(dbPath string) (*Store, error) {
 
 // SyncTransactions atomically replaces transactions for the given account within the date range of the new transactions.
 // This handles updates (Pending -> Posted) and deletions (Pre-auths dropping off).
-func (s *Store) SyncTransactions(txs []Transaction) error {
+func (s *Store) SyncTransactions(ctx context.Context, txs []Transaction) error {
 	if len(txs) == 0 {
 		return nil
 	}
@@ -63,7 +64,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 	}
 
 	// Process each group in a DB transaction
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("Failed to begin db transaction: %w", err)
 	}
@@ -88,7 +89,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 		DELETE FROM transactions 
 		WHERE account_name = ? AND account_number = ? AND date >= ? AND date <= ?
 		`
-		if _, err := tx.Exec(delQuery, key.Name, key.Number, minDate, maxDate); err != nil {
+		if _, err := tx.ExecContext(ctx, delQuery, key.Name, key.Number, minDate, maxDate); err != nil {
 			return fmt.Errorf("Failed to delete existing transactions for %s: %w", key.Name, err)
 		}
 
@@ -98,7 +99,7 @@ func (s *Store) SyncTransactions(txs []Transaction) error {
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
 		`
 		for _, t := range group {
-			if _, err := tx.Exec(insQuery, t.Date, t.AccountName, t.InstitutionName, t.AccountNumber, t.Amount, t.Description, t.Category, t.Ignored, t.Hash); err != nil {
+			if _, err := tx.ExecContext(ctx, insQuery, t.Date, t.AccountName, t.InstitutionName, t.AccountNumber, t.Amount, t.Description, t.Category, t.Ignored, t.Hash); err != nil {
 				return fmt.Errorf("Failed to insert transaction %s: %w", t.Hash, err)
 			}
 		}
@@ -237,16 +238,16 @@ func (s *Store) AddTransaction(t Transaction) error {
 
 // GetBalance returns the sum of amounts for the given account up to (and including) the given date.
 // Date should be in "YYYY-MM-DD" format.
-func (s *Store) GetBalance(name string, accountNumber string, untilDate string) (float64, error) {
-	return s.getBalanceInternal(name, accountNumber, "", untilDate)
+func (s *Store) GetBalance(ctx context.Context, name string, accountNumber string, untilDate string) (float64, error) {
+	return s.getBalanceInternal(ctx, name, accountNumber, "", untilDate)
 }
 
 // GetBalanceSince returns sum of amounts > fromDate AND <= untilDate.
-func (s *Store) GetBalanceSince(name string, accountNumber string, fromDate string, untilDate string) (float64, error) {
-	return s.getBalanceInternal(name, accountNumber, fromDate, untilDate)
+func (s *Store) GetBalanceSince(ctx context.Context, name string, accountNumber string, fromDate string, untilDate string) (float64, error) {
+	return s.getBalanceInternal(ctx, name, accountNumber, fromDate, untilDate)
 }
 
-func (s *Store) getBalanceInternal(name, accountNumber, fromDate, untilDate string) (float64, error) {
+func (s *Store) getBalanceInternal(ctx context.Context, name, accountNumber, fromDate, untilDate string) (float64, error) {
 	query := `
 	SELECT COALESCE(SUM(amount), 0)
 	FROM transactions
@@ -270,7 +271,7 @@ func (s *Store) getBalanceInternal(name, accountNumber, fromDate, untilDate stri
 	}
 
 	var balance float64
-	err := s.db.QueryRow(query, args...).Scan(&balance)
+	err := s.db.QueryRowContext(ctx, query, args...).Scan(&balance)
 	if err != nil {
 		return 0, err
 	}
@@ -279,7 +280,7 @@ func (s *Store) getBalanceInternal(name, accountNumber, fromDate, untilDate stri
 
 // GetTransactions returns a list of transactions matching the given criteria.
 // Empty strings for any parameter mean "no filter" for that field.
-func (s *Store) GetTransactions(accountName, accountNumber, dateFrom, dateTo string) ([]Transaction, error) {
+func (s *Store) GetTransactions(ctx context.Context, accountName, accountNumber, dateFrom, dateTo string) ([]Transaction, error) {
 	query := `
 	SELECT date, account_name, institution_name, account_number, amount, description, category, ignored, hash
 	FROM transactions
@@ -306,7 +307,7 @@ func (s *Store) GetTransactions(accountName, accountNumber, dateFrom, dateTo str
 
 	query += " ORDER BY date DESC, id DESC"
 
-	rows, err := s.db.Query(query, args...)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -333,7 +334,7 @@ func (s *Store) GetTransactions(accountName, accountNumber, dateFrom, dateTo str
 }
 
 // SetBalanceOverride upserts a statement balance override for the specified account and statement date.
-func (s *Store) SetBalanceOverride(accountNumber, statementDate string, balance float64) error {
+func (s *Store) SetBalanceOverride(ctx context.Context, accountNumber, statementDate string, balance float64) error {
 	query := `
 	INSERT INTO balance_overrides (account_number, statement_balance, statement_date, updated_at)
 	VALUES (?, ?, ?, ?)
@@ -342,19 +343,19 @@ func (s *Store) SetBalanceOverride(accountNumber, statementDate string, balance 
 		updated_at = excluded.updated_at
 	`
 	now := time.Now().Format(time.RFC3339)
-	_, err := s.db.Exec(query, accountNumber, balance, statementDate, now)
+	_, err := s.db.ExecContext(ctx, query, accountNumber, balance, statementDate, now)
 	return err
 }
 
 // GetBalanceOverride retrieves the statement balance override for the specified account and statement date.
-func (s *Store) GetBalanceOverride(accountNumber, statementDate string) (*float64, error) {
+func (s *Store) GetBalanceOverride(ctx context.Context, accountNumber, statementDate string) (*float64, error) {
 	query := `
 	SELECT statement_balance
 	FROM balance_overrides
 	WHERE account_number = ? AND statement_date = ?
 	`
 	var bal sql.NullFloat64
-	err := s.db.QueryRow(query, accountNumber, statementDate).Scan(&bal)
+	err := s.db.QueryRowContext(ctx, query, accountNumber, statementDate).Scan(&bal)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -370,21 +371,21 @@ func (s *Store) GetBalanceOverride(accountNumber, statementDate string) (*float6
 }
 
 // DeleteBalanceOverride removes the override for the given account/date.
-func (s *Store) DeleteBalanceOverride(accountNumber, statementDate string) error {
+func (s *Store) DeleteBalanceOverride(ctx context.Context, accountNumber, statementDate string) error {
 	query := `
 	DELETE FROM balance_overrides
 	WHERE account_number = ? AND statement_date = ?
 	`
-	_, err := s.db.Exec(query, accountNumber, statementDate)
+	_, err := s.db.ExecContext(ctx, query, accountNumber, statementDate)
 	return err
 }
 
 // GetConfig fetches the complete configuration from the database.
-func (s *Store) GetConfig() (*config.Config, error) {
+func (s *Store) GetConfig(ctx context.Context) (*config.Config, error) {
 	cfg := &config.Config{}
 
 	// Fetch subscribers
-	rows, err := s.db.Query("SELECT email FROM subscribers")
+	rows, err := s.db.QueryContext(ctx, "SELECT email FROM subscribers")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch subscribers: %w", err)
 	}
@@ -398,7 +399,7 @@ func (s *Store) GetConfig() (*config.Config, error) {
 	}
 
 	// Fetch cards
-	rows, err = s.db.Query("SELECT name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days FROM cards")
+	rows, err = s.db.QueryContext(ctx, "SELECT name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days FROM cards")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch cards: %w", err)
 	}
@@ -412,7 +413,7 @@ func (s *Store) GetConfig() (*config.Config, error) {
 	}
 
 	// Fetch global settings
-	rows, err = s.db.Query("SELECT key, value FROM app_settings")
+	rows, err = s.db.QueryContext(ctx, "SELECT key, value FROM app_settings")
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch app_settings: %w", err)
 	}
@@ -446,34 +447,34 @@ func (s *Store) GetConfig() (*config.Config, error) {
 }
 
 // SaveConfig performs a complete configuration sync to the database.
-func (s *Store) SaveConfig(cfg *config.Config) error {
-	tx, err := s.db.Begin()
+func (s *Store) SaveConfig(ctx context.Context, cfg *config.Config) error {
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 
 	// 1. Clear existing
-	if _, err := tx.Exec("DELETE FROM subscribers"); err != nil {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM subscribers"); err != nil {
 		return err
 	}
-	if _, err := tx.Exec("DELETE FROM cards"); err != nil {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM cards"); err != nil {
 		return err
 	}
-	if _, err := tx.Exec("DELETE FROM app_settings"); err != nil {
+	if _, err := tx.ExecContext(ctx, "DELETE FROM app_settings"); err != nil {
 		return err
 	}
 
 	// 2. Insert subscribers
 	for _, email := range cfg.Subscribers {
-		if _, err := tx.Exec("INSERT INTO subscribers (email) VALUES (?)", email); err != nil {
+		if _, err := tx.ExecContext(ctx, "INSERT INTO subscribers (email) VALUES (?)", email); err != nil {
 			return err
 		}
 	}
 
 	// 3. Insert cards
 	for _, c := range cfg.Cards {
-		if _, err := tx.Exec(`
+		if _, err := tx.ExecContext(ctx, `
 			INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days) 
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		`, c.Name, c.AccountNumber, c.Limit, c.StatementDay, c.DueDay, c.StartingBalance, c.StartingDate, c.StatementGraceDays); err != nil {
@@ -490,7 +491,7 @@ func (s *Store) SaveConfig(cfg *config.Config) error {
 	settings["smtp"] = string(smtpJSON)
 
 	for k, v := range settings {
-		if _, err := tx.Exec("INSERT INTO app_settings (key, value) VALUES (?, ?)", k, v); err != nil {
+		if _, err := tx.ExecContext(ctx, "INSERT INTO app_settings (key, value) VALUES (?, ?)", k, v); err != nil {
 			return err
 		}
 	}
@@ -499,8 +500,8 @@ func (s *Store) SaveConfig(cfg *config.Config) error {
 }
 
 // SaveCard upserts a card configuration.
-func (s *Store) SaveCard(c config.CardConfig) error {
-	_, err := s.db.Exec(`
+func (s *Store) SaveCard(ctx context.Context, c config.CardConfig) error {
+	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO cards (name, account_number, credit_limit, statement_day, due_day, starting_balance, starting_date, statement_grace_days)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(name, account_number) DO UPDATE SET
@@ -515,7 +516,7 @@ func (s *Store) SaveCard(c config.CardConfig) error {
 }
 
 // DeleteCard removes a card from tracking.
-func (s *Store) DeleteCard(accountNumber string) error {
-	_, err := s.db.Exec("DELETE FROM cards WHERE account_number = ?", accountNumber)
+func (s *Store) DeleteCard(ctx context.Context, accountNumber string) error {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM cards WHERE account_number = ?", accountNumber)
 	return err
 }

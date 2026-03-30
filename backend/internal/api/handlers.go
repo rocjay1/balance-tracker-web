@@ -1,13 +1,10 @@
-// Package api provides HTTP handlers for the balance tracker API.
 package api
 
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
-	"os"
 	"time"
 
 	"github.com/rocjay1/balance-tracker-web/backend/internal/alerts"
@@ -37,6 +34,7 @@ func NewServer(s *store.Store, cfg *config.Config, m *mailer.Mailer) *Server {
 // TestAlertHandler triggers a manual alert check. Accepts optional "date" (YYYY-MM-DD)
 // and "force" query parameters.
 func (s *Server) TestAlertHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	dateStr := r.URL.Query().Get("date")
 	var refTime time.Time
 	if dateStr != "" {
@@ -57,7 +55,7 @@ func (s *Server) TestAlertHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	force := r.URL.Query().Get("force") == "true"
-	alerts.CheckAndSendAlerts(s.store, s.config, s.mailer, refTime, force)
+	alerts.CheckAndSendAlerts(ctx, s.store, s.config, s.mailer, refTime, force)
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Alert check triggered"))
@@ -84,9 +82,10 @@ type CardStatus struct {
 
 // StatusHandler returns the computed financial status for all configured cards.
 func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	var statuses []CardStatus
 	for _, card := range s.config.Cards {
-		res, err := calculator.CalculatePayment(s.store, card, time.Now())
+		res, err := calculator.CalculatePayment(ctx, s.store, card, time.Now())
 		if err != nil {
 			slog.Error("Error calculating payment for card", "card", card.Name, "error", err)
 			continue
@@ -112,6 +111,7 @@ func (s *Server) StatusHandler(w http.ResponseWriter, r *http.Request) {
 
 // UploadHandler accepts a CSV file upload, parses it, and syncs the transactions to the store.
 func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	r.Body = http.MaxBytesReader(w, r.Body, 10<<20) // 10MB
 
 	file, _, err := r.FormFile("file")
@@ -121,27 +121,13 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	// Save to temp file to parse (since csv.Parse takes a path)
-	tempFile, err := os.CreateTemp("", "upload-*.csv")
-	if err != nil {
-		http.Error(w, "Failed to create temp file", http.StatusInternalServerError)
-		return
-	}
-	defer os.Remove(tempFile.Name())
-
-	if _, err := io.Copy(tempFile, file); err != nil {
-		http.Error(w, "Failed to write temp file", http.StatusInternalServerError)
-		return
-	}
-	tempFile.Close()
-
-	transactions, err := csv.Parse(tempFile.Name())
+	transactions, err := csv.Parse(file)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("Error parsing CSV: %v", err), http.StatusBadRequest)
 		return
 	}
 
-	if err := s.store.SyncTransactions(transactions); err != nil {
+	if err := s.store.SyncTransactions(ctx, transactions); err != nil {
 		http.Error(w, fmt.Sprintf("Error syncing transactions: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -157,13 +143,14 @@ func (s *Server) UploadHandler(w http.ResponseWriter, r *http.Request) {
 
 // TransactionsHandler returns a list of transactions, optionally filtered by query parameters.
 func (s *Server) TransactionsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	q := r.URL.Query()
 	accountName := q.Get("account_name")
 	accountNumber := q.Get("account_number")
 	dateFrom := q.Get("date_from")
 	dateTo := q.Get("date_to")
 
-	txs, err := s.store.GetTransactions(accountName, accountNumber, dateFrom, dateTo)
+	txs, err := s.store.GetTransactions(ctx, accountName, accountNumber, dateFrom, dateTo)
 	if err != nil {
 		slog.Error("Error querying transactions", "error", err)
 		http.Error(w, "Error querying transactions", http.StatusInternalServerError)
@@ -179,6 +166,7 @@ func (s *Server) TransactionsHandler(w http.ResponseWriter, r *http.Request) {
 
 // OverrideHandler handles saving and deleting statement balance overrides.
 func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	accountNumber := r.PathValue("account_number")
 	if accountNumber == "" {
 		http.Error(w, "Account number required", http.StatusBadRequest)
@@ -210,7 +198,7 @@ func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.store.SetBalanceOverride(accountNumber, stmtDateStr, req.StatementBalance); err != nil {
+		if err := s.store.SetBalanceOverride(ctx, accountNumber, stmtDateStr, req.StatementBalance); err != nil {
 			slog.Error("Failed to set override", "error", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
@@ -218,7 +206,7 @@ func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 
 	case http.MethodDelete:
-		if err := s.store.DeleteBalanceOverride(accountNumber, stmtDateStr); err != nil {
+		if err := s.store.DeleteBalanceOverride(ctx, accountNumber, stmtDateStr); err != nil {
 			slog.Error("Failed to delete override", "error", err)
 			http.Error(w, "Server error", http.StatusInternalServerError)
 			return
@@ -232,6 +220,7 @@ func (s *Server) OverrideHandler(w http.ResponseWriter, r *http.Request) {
 
 // ConfigHandler returns the current application configuration or updates it.
 func (s *Server) ConfigHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	switch r.Method {
 	case http.MethodGet:
 		w.Header().Set("Content-Type", "application/json")
@@ -244,7 +233,7 @@ func (s *Server) ConfigHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.store.SaveConfig(&newCfg); err != nil {
+		if err := s.store.SaveConfig(ctx, &newCfg); err != nil {
 			slog.Error("Failed to save config", "error", err)
 			http.Error(w, "Failed to save config", http.StatusInternalServerError)
 			return
@@ -260,6 +249,7 @@ func (s *Server) ConfigHandler(w http.ResponseWriter, r *http.Request) {
 
 // CardHandler handles adding, updating, and removing cards.
 func (s *Server) CardHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	switch r.Method {
 	case http.MethodPost:
 		var card config.CardConfig
@@ -268,14 +258,14 @@ func (s *Server) CardHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.store.SaveCard(card); err != nil {
+		if err := s.store.SaveCard(ctx, card); err != nil {
 			slog.Error("Failed to save card", "error", err)
 			http.Error(w, "Failed to save card", http.StatusInternalServerError)
 			return
 		}
 
 		// Refresh in-memory config
-		updatedCfg, err := s.store.GetConfig()
+		updatedCfg, err := s.store.GetConfig(ctx)
 		if err == nil {
 			s.config = updatedCfg
 		}
@@ -289,14 +279,14 @@ func (s *Server) CardHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if err := s.store.DeleteCard(accountNumber); err != nil {
+		if err := s.store.DeleteCard(ctx, accountNumber); err != nil {
 			slog.Error("Failed to delete card", "error", err)
 			http.Error(w, "Failed to delete card", http.StatusInternalServerError)
 			return
 		}
 
 		// Refresh in-memory config
-		updatedCfg, err := s.store.GetConfig()
+		updatedCfg, err := s.store.GetConfig(ctx)
 		if err == nil {
 			s.config = updatedCfg
 		}

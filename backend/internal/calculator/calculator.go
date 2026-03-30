@@ -2,6 +2,7 @@
 package calculator
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"time"
@@ -39,7 +40,7 @@ func GetStatementDate(card config.CardConfig, refTime time.Time) time.Time {
 }
 
 // CalculatePayment determines the payment needed for a card to maintain target utilization.
-func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time) (*PaymentResult, error) {
+func CalculatePayment(ctx context.Context, s *store.Store, card config.CardConfig, refTime time.Time) (*PaymentResult, error) {
 	// Determine dates
 	year, month, _ := refTime.Date()
 	lastStatementDate := GetStatementDate(card, refTime)
@@ -57,7 +58,7 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 			bal = card.StartingBalance
 		}
 
-		dbBal, err := s.GetBalanceSince(card.Name, card.AccountNumber, fromDate, until)
+		dbBal, err := s.GetBalanceSince(ctx, card.Name, card.AccountNumber, fromDate, until)
 		if err != nil {
 			return 0, err
 		}
@@ -72,7 +73,7 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 	statementBalance := calculatedStatementBalance
 	hasOverride := false
 
-	override, err := s.GetBalanceOverride(card.AccountNumber, lastStatementStr)
+	override, err := s.GetBalanceOverride(ctx, card.AccountNumber, lastStatementStr)
 	if err != nil {
 		slog.Error("Failed to check for balance override", "card", card.Name, "error", err)
 	}
