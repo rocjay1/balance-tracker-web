@@ -220,15 +220,15 @@ func (s *Store) Close() error {
 
 // Transaction represents a single financial transaction record.
 type Transaction struct {
-	Date            string
-	AccountName     string
-	InstitutionName string
-	AccountNumber   string
-	Amount          float64
-	Description     string
-	Category        string
-	Ignored         bool
-	Hash            string
+	Date            string  `json:"date"`
+	AccountName     string  `json:"account_name"`
+	InstitutionName string  `json:"institution_name"`
+	AccountNumber   string  `json:"account_number"`
+	Amount          float64 `json:"amount"`
+	Description     string  `json:"description"`
+	Category        string  `json:"category"`
+	Ignored         bool    `json:"ignored"`
+	Hash            string  `json:"hash"`
 }
 
 // AddTransaction inserts a single transaction, ignoring duplicates by hash.

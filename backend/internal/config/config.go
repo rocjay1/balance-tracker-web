@@ -10,11 +10,11 @@ import (
 
 // Config holds the top-level application configuration.
 type Config struct {
-	Subscribers        []string     `yaml:"subscribers"`
-	AlertDaysBeforeDue int          `yaml:"alert_days_before_due"`
-	Cards              []CardConfig `yaml:"cards"`
-	SMTP               SMTPConfig   `yaml:"smtp"`
-	Timezone           string       `yaml:"timezone"`
+	Subscribers        []string     `yaml:"subscribers" json:"subscribers"`
+	AlertDaysBeforeDue int          `yaml:"alert_days_before_due" json:"alert_days_before_due"`
+	Cards              []CardConfig `yaml:"cards" json:"cards"`
+	SMTP               SMTPConfig   `yaml:"smtp" json:"smtp"`
+	Timezone           string       `yaml:"timezone" json:"timezone"`
 }
 
 // CardConfig describes a single credit card to track.
@@ -33,10 +33,10 @@ type CardConfig struct {
 
 // SMTPConfig holds SMTP server credentials for outbound email.
 type SMTPConfig struct {
-	Host     string `yaml:"host"`
-	Port     int    `yaml:"port"`
-	User     string `yaml:"user"`
-	Password string `yaml:"password"`
+	Host     string `yaml:"host" json:"host"`
+	Port     int    `yaml:"port" json:"port"`
+	User     string `yaml:"user" json:"user"`
+	Password string `yaml:"password" json:"password"`
 }
 
 // Load reads and parses the YAML configuration file at the given path.

@@ -2,29 +2,29 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 interface CardConfig {
-    ID?: number;
-    Name: string;
-    ImportName?: string;
-    AccountNumber: string;
-    Limit: number;
-    StatementDay: number;
-    DueDay: number;
-    StartingBalance: number;
-    StartingDate: string;
-    StatementGraceDays: number;
+    id?: number;
+    name: string;
+    import_name?: string;
+    account_number: string;
+    limit: number;
+    statement_day: number;
+    due_day: number;
+    starting_balance: number;
+    starting_date: string;
+    statement_grace_days: number;
 }
 
 interface AppConfig {
-    Subscribers: string[];
-    AlertDaysBeforeDue: number;
-    Cards: CardConfig[];
-    SMTP: {
-        Host: string;
-        Port: number;
-        User: string;
-        Password?: string;
+    subscribers: string[];
+    alert_days_before_due: number;
+    cards: CardConfig[];
+    smtp: {
+        host: string;
+        port: number;
+        user: string;
+        password?: string;
     };
-    Timezone: string;
+    timezone: string;
 }
 
 const ConfigPage: React.FC = () => {
@@ -82,13 +82,13 @@ const ConfigPage: React.FC = () => {
     };
 
     const handleDeleteCard = async (card: CardConfig) => {
-        if (card.ID === undefined) return;
-        if (!window.confirm(`Are you sure you want to delete ${card.Name}?`)) {
+        if (card.id === undefined) return;
+        if (!window.confirm(`Are you sure you want to delete ${card.name}?`)) {
             return;
         }
 
         try {
-            const response = await fetch(`/api/cards/${card.ID}`, {
+            const response = await fetch(`/api/cards/${card.id}`, {
                 method: 'DELETE',
             });
 
@@ -130,16 +130,16 @@ const ConfigPage: React.FC = () => {
 
     const openAddCard = () => {
         setEditingCard({
-            ID: 0,
-            Name: '',
-            ImportName: '',
-            AccountNumber: '',
-            Limit: 0,
-            StatementDay: 1,
-            DueDay: 1,
-            StartingBalance: 0,
-            StartingDate: new Date().toISOString().split('T')[0],
-            StatementGraceDays: 0
+            id: 0,
+            name: '',
+            import_name: '',
+            account_number: '',
+            limit: 0,
+            statement_day: 1,
+            due_day: 1,
+            starting_balance: 0,
+            starting_date: new Date().toISOString().split('T')[0],
+            statement_grace_days: 0
         });
         setIsCardModalOpen(true);
     };
@@ -190,8 +190,8 @@ const ConfigPage: React.FC = () => {
                                         <input 
                                             type="text" 
                                             className="w-full bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                                            value={config.Timezone}
-                                            onChange={(e) => setConfig({ ...config, Timezone: e.target.value })}
+                                            value={config.timezone}
+                                            onChange={(e) => setConfig({ ...config, timezone: e.target.value })}
                                             placeholder="e.America/Chicago"
                                         />
                                     </div>
@@ -200,8 +200,8 @@ const ConfigPage: React.FC = () => {
                                         <input 
                                             type="number" 
                                             className="w-full bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                                            value={config.AlertDaysBeforeDue}
-                                            onChange={(e) => setConfig({ ...config, AlertDaysBeforeDue: parseInt(e.target.value) || 0 })}
+                                            value={config.alert_days_before_due}
+                                            onChange={(e) => setConfig({ ...config, alert_days_before_due: parseInt(e.target.value) || 0 })}
                                         />
                                     </div>
                                 </div>
@@ -210,8 +210,8 @@ const ConfigPage: React.FC = () => {
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Subscribers (one per line)</label>
                                     <textarea 
                                         className="w-full bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all h-24"
-                                        value={config.Subscribers.join('\n')}
-                                        onChange={(e) => setConfig({ ...config, Subscribers: e.target.value.split('\n').map(s => s.trim()).filter(s => s !== '') })}
+                                        value={config.subscribers.join('\n')}
+                                        onChange={(e) => setConfig({ ...config, subscribers: e.target.value.split('\n').map(s => s.trim()).filter(s => s !== '') })}
                                         placeholder="email@example.com"
                                     />
                                 </div>
@@ -252,12 +252,12 @@ const ConfigPage: React.FC = () => {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-100">
-                                        {config.Cards.map((card) => (
-                                            <tr key={card.ID} className="hover:bg-gray-50 transition-colors">
-                                                <td className="py-4 px-6 text-sm font-medium text-gray-900">{card.Name}</td>
-                                                <td className="py-4 px-6 text-sm text-gray-600">x{card.AccountNumber}</td>
-                                                <td className="py-4 px-6 text-sm text-gray-900 text-right font-mono">${card.Limit.toLocaleString()}</td>
-                                                <td className="py-4 px-6 text-sm text-center text-gray-600">{card.StatementDay} / {card.DueDay}</td>
+                                        {config.cards.map((card) => (
+                                            <tr key={card.id} className="hover:bg-gray-50 transition-colors">
+                                                <td className="py-4 px-6 text-sm font-medium text-gray-900">{card.name}</td>
+                                                <td className="py-4 px-6 text-sm text-gray-600">x{card.account_number}</td>
+                                                <td className="py-4 px-6 text-sm text-gray-900 text-right font-mono">${card.limit.toLocaleString()}</td>
+                                                <td className="py-4 px-6 text-sm text-center text-gray-600">{card.statement_day} / {card.due_day}</td>
                                                 <td className="py-4 px-6 text-sm text-right">
                                                     <div className="flex justify-end gap-2">
                                                         <button 
@@ -278,7 +278,7 @@ const ConfigPage: React.FC = () => {
                                                 </td>
                                             </tr>
                                         ))}
-                                        {config.Cards.length === 0 && (
+                                        {config.cards.length === 0 && (
                                             <tr>
                                                 <td colSpan={5} className="py-8 text-center text-gray-500 italic">No cards configured.</td>
                                             </tr>
@@ -299,8 +299,8 @@ const ConfigPage: React.FC = () => {
                                     <input 
                                         type="text" 
                                         className="w-full bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                                        value={config.SMTP.Host}
-                                        onChange={(e) => setConfig({ ...config, SMTP: { ...config.SMTP, Host: e.target.value } })}
+                                        value={config.smtp.host}
+                                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, host: e.target.value } })}
                                     />
                                 </div>
                                 <div>
@@ -308,8 +308,8 @@ const ConfigPage: React.FC = () => {
                                     <input 
                                         type="number" 
                                         className="w-full bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                                        value={config.SMTP.Port}
-                                        onChange={(e) => setConfig({ ...config, SMTP: { ...config.SMTP, Port: parseInt(e.target.value) || 0 } })}
+                                        value={config.smtp.port}
+                                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, port: parseInt(e.target.value) || 0 } })}
                                     />
                                 </div>
                                 <div>
@@ -317,8 +317,8 @@ const ConfigPage: React.FC = () => {
                                     <input 
                                         type="text" 
                                         className="w-full bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                                        value={config.SMTP.User}
-                                        onChange={(e) => setConfig({ ...config, SMTP: { ...config.SMTP, User: e.target.value } })}
+                                        value={config.smtp.user}
+                                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, user: e.target.value } })}
                                     />
                                 </div>
                                 <div>
@@ -326,8 +326,8 @@ const ConfigPage: React.FC = () => {
                                     <input 
                                         type="password" 
                                         className="w-full bg-gray-50 border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
-                                        value={config.SMTP.Password || ''}
-                                        onChange={(e) => setConfig({ ...config, SMTP: { ...config.SMTP, Password: e.target.value } })}
+                                        value={config.smtp.password || ''}
+                                        onChange={(e) => setConfig({ ...config, smtp: { ...config.smtp, password: e.target.value } })}
                                         placeholder="••••••••"
                                     />
                                 </div>
@@ -342,7 +342,7 @@ const ConfigPage: React.FC = () => {
                 <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
                     <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                            <h3 className="text-lg font-bold text-gray-900">{editingCard.ID ? 'Edit Card' : 'Add New Card'}</h3>
+                            <h3 className="text-lg font-bold text-gray-900">{editingCard.id ? 'Edit Card' : 'Add New Card'}</h3>
                             <button onClick={() => setIsCardModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             </button>
@@ -355,8 +355,8 @@ const ConfigPage: React.FC = () => {
                                         required
                                         type="text" 
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.Name}
-                                        onChange={(e) => setEditingCard({ ...editingCard, Name: e.target.value })}
+                                        value={editingCard.name}
+                                        onChange={(e) => setEditingCard({ ...editingCard, name: e.target.value })}
                                         placeholder="e.g. Chase Sapphire"
                                     />
                                 </div>
@@ -365,8 +365,8 @@ const ConfigPage: React.FC = () => {
                                     <input 
                                         type="text" 
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.ImportName || ''}
-                                        onChange={(e) => setEditingCard({ ...editingCard, ImportName: e.target.value })}
+                                        value={editingCard.import_name || ''}
+                                        onChange={(e) => setEditingCard({ ...editingCard, import_name: e.target.value })}
                                         placeholder="e.g. Discover (Used to match CSV transactions)"
                                     />
                                 </div>
@@ -377,8 +377,8 @@ const ConfigPage: React.FC = () => {
                                         type="text" 
                                         maxLength={4}
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.AccountNumber}
-                                        onChange={(e) => setEditingCard({ ...editingCard, AccountNumber: e.target.value })}
+                                        value={editingCard.account_number}
+                                        onChange={(e) => setEditingCard({ ...editingCard, account_number: e.target.value })}
                                         placeholder="1234"
                                     />
                                 </div>
@@ -388,8 +388,8 @@ const ConfigPage: React.FC = () => {
                                         required
                                         type="number" 
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.Limit}
-                                        onChange={(e) => setEditingCard({ ...editingCard, Limit: parseInt(e.target.value) || 0 })}
+                                        value={editingCard.limit}
+                                        onChange={(e) => setEditingCard({ ...editingCard, limit: parseInt(e.target.value) || 0 })}
                                     />
                                 </div>
                                 <div>
@@ -399,8 +399,8 @@ const ConfigPage: React.FC = () => {
                                         type="number" 
                                         min={1} max={31}
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.StatementDay}
-                                        onChange={(e) => setEditingCard({ ...editingCard, StatementDay: parseInt(e.target.value) || 1 })}
+                                        value={editingCard.statement_day}
+                                        onChange={(e) => setEditingCard({ ...editingCard, statement_day: parseInt(e.target.value) || 1 })}
                                     />
                                 </div>
                                 <div>
@@ -410,8 +410,8 @@ const ConfigPage: React.FC = () => {
                                         type="number" 
                                         min={1} max={31}
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.DueDay}
-                                        onChange={(e) => setEditingCard({ ...editingCard, DueDay: parseInt(e.target.value) || 1 })}
+                                        value={editingCard.due_day}
+                                        onChange={(e) => setEditingCard({ ...editingCard, due_day: parseInt(e.target.value) || 1 })}
                                     />
                                 </div>
                                 <div>
@@ -420,8 +420,8 @@ const ConfigPage: React.FC = () => {
                                         required
                                         type="number" 
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.StartingBalance}
-                                        onChange={(e) => setEditingCard({ ...editingCard, StartingBalance: parseFloat(e.target.value) || 0 })}
+                                        value={editingCard.starting_balance}
+                                        onChange={(e) => setEditingCard({ ...editingCard, starting_balance: parseFloat(e.target.value) || 0 })}
                                     />
                                 </div>
                                 <div>
@@ -430,8 +430,8 @@ const ConfigPage: React.FC = () => {
                                         required
                                         type="date" 
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.StartingDate}
-                                        onChange={(e) => setEditingCard({ ...editingCard, StartingDate: e.target.value })}
+                                        value={editingCard.starting_date}
+                                        onChange={(e) => setEditingCard({ ...editingCard, starting_date: e.target.value })}
                                     />
                                 </div>
                                 <div>
@@ -441,8 +441,8 @@ const ConfigPage: React.FC = () => {
                                         type="number" 
                                         min={0}
                                         className="w-full border border-gray-300 rounded-lg py-2 px-3 focus:ring-2 focus:ring-blue-500 outline-none"
-                                        value={editingCard.StatementGraceDays}
-                                        onChange={(e) => setEditingCard({ ...editingCard, StatementGraceDays: parseInt(e.target.value) || 0 })}
+                                        value={editingCard.statement_grace_days}
+                                        onChange={(e) => setEditingCard({ ...editingCard, statement_grace_days: parseInt(e.target.value) || 0 })}
                                     />
                                 </div>
                             </div>

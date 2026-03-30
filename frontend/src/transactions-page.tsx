@@ -4,15 +4,15 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
 interface Transaction {
-    Date: string;
-    AccountName: string;
-    InstitutionName: string;
-    AccountNumber: string;
-    Amount: number;
-    Description: string;
-    Category: string;
-    Ignored: boolean;
-    Hash: string;
+    date: string;
+    account_name: string;
+    institution_name: string;
+    account_number: string;
+    amount: number;
+    description: string;
+    category: string;
+    ignored: boolean;
+    hash: string;
 }
 
 const TransactionsPage: React.FC = () => {
@@ -192,20 +192,20 @@ const TransactionsPage: React.FC = () => {
                         <div className="md:hidden divide-y divide-gray-100">
                             {transactions.length > 0 ? (
                                 transactions.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((t, idx) => (
-                                    <div key={t.Hash || idx} className="p-4 hover:bg-slate-50 transition-colors">
+                                    <div key={t.hash || idx} className="p-4 hover:bg-slate-50 transition-colors">
                                         <div className="flex items-start justify-between gap-2 mb-1">
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-gray-900 truncate">{t.Description}</p>
-                                                <p className="text-xs text-gray-500 mt-0.5">{t.AccountName} &middot; x{t.AccountNumber}</p>
+                                                <p className="text-sm font-medium text-gray-900 truncate">{t.description}</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">{t.account_name} &middot; x{t.account_number}</p>
                                             </div>
-                                            <span className={`text-sm font-semibold whitespace-nowrap ${t.Amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                                                {t.Amount < 0 ? '+' : ''}{formatCurrency(t.Amount * -1)}
+                                            <span className={`text-sm font-semibold whitespace-nowrap ${t.amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                {t.amount < 0 ? '+' : ''}{formatCurrency(t.amount * -1)}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between mt-2">
-                                            <span className="text-xs text-gray-500">{t.Date}</span>
+                                            <span className="text-xs text-gray-500">{t.date}</span>
                                             <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                                                {t.Category || 'Uncategorized'}
+                                                {t.category || 'Uncategorized'}
                                             </span>
                                         </div>
                                     </div>
@@ -234,23 +234,23 @@ const TransactionsPage: React.FC = () => {
                                 <tbody className="divide-y divide-gray-100">
                                     {transactions.length > 0 ? (
                                         transactions.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage).map((t, idx) => (
-                                            <tr key={t.Hash || idx} className="hover:bg-slate-50 transition-colors group">
-                                                <td className="py-4 px-6 text-sm text-gray-600 whitespace-nowrap">{t.Date}</td>
+                                            <tr key={t.hash || idx} className="hover:bg-slate-50 transition-colors group">
+                                                <td className="py-4 px-6 text-sm text-gray-600 whitespace-nowrap">{t.date}</td>
                                                 <td className="py-4 px-6 text-sm">
-                                                    <div className="font-medium text-gray-900">{t.AccountName}</div>
-                                                    <div className="text-xs text-gray-500">x{t.AccountNumber}</div>
+                                                    <div className="font-medium text-gray-900">{t.account_name}</div>
+                                                    <div className="text-xs text-gray-500">x{t.account_number}</div>
                                                 </td>
-                                                <td className="py-4 px-6 text-sm text-gray-800 max-w-md truncate" title={t.Description}>
-                                                    {t.Description}
+                                                <td className="py-4 px-6 text-sm text-gray-800 max-w-md truncate" title={t.description}>
+                                                    {t.description}
                                                 </td>
                                                 <td className="py-4 px-6 text-sm">
                                                     <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 border border-gray-200">
-                                                        {t.Category || 'Uncategorized'}
+                                                        {t.category || 'Uncategorized'}
                                                     </span>
                                                 </td>
                                                 <td className="py-4 px-6 text-sm text-right whitespace-nowrap">
-                                                    <span className={`font-semibold ${t.Amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
-                                                        {t.Amount < 0 ? '+' : ''}{formatCurrency(t.Amount * -1)}
+                                                    <span className={`font-semibold ${t.amount < 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                                                        {t.amount < 0 ? '+' : ''}{formatCurrency(t.amount * -1)}
                                                     </span>
                                                 </td>
                                             </tr>
