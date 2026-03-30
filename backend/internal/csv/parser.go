@@ -6,24 +6,17 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"os"
 	"strconv"
 	"strings"
 
 	"github.com/rocjay1/balance-tracker-web/backend/internal/store"
 )
 
-// Parse reads the CSV file and returns a list of transactions.
-func Parse(path string) ([]store.Transaction, error) {
-	f, err := os.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("Failed to open csv file: %w", err)
-	}
-	defer f.Close()
-
-	r := csv.NewReader(f)
+// Parse reads the CSV file from an io.Reader and returns a list of transactions.
+func Parse(r io.Reader) ([]store.Transaction, error) {
+	cr := csv.NewReader(r)
 	// Read header
-	header, err := r.Read()
+	header, err := cr.Read()
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read header: %w", err)
 	}
@@ -38,7 +31,7 @@ func Parse(path string) ([]store.Transaction, error) {
 	lineNum := 1
 
 	for {
-		record, err := r.Read()
+		record, err := cr.Read()
 		if err == io.EOF {
 			break
 		}
