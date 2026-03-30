@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/rocjay1/balance-tracker-web/backend/internal/api"
@@ -31,8 +35,10 @@ func main() {
 	}
 	defer store.Close()
 
+	ctx := context.Background()
+
 	// Load Config (Prefer DB, fallback to config.yaml)
-	cfg, err := store.GetConfig()
+	cfg, err := store.GetConfig(ctx)
 	if err != nil || len(cfg.Cards) == 0 {
 		slog.Info("No config in database, attempting to load from config.yaml")
 		cfgPath := "config.yaml"
@@ -43,7 +49,7 @@ func main() {
 		cfgYaml, yamlErr := config.Load(cfgPath)
 		if yamlErr == nil {
 			slog.Info("Migrating config from yaml to database")
-			if err := store.SaveConfig(cfgYaml); err != nil {
+			if err := store.SaveConfig(ctx, cfgYaml); err != nil {
 				slog.Error("Failed to migrate config to database", "error", err)
 			} else {
 				cfg = cfgYaml
@@ -65,41 +71,63 @@ func main() {
 	srvHandler := api.NewServer(store, cfg, mail)
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/api/health", srvHandler.HealthHandler)
-	mux.HandleFunc("GET /api/status", middleware.AllowCors(srvHandler.StatusHandler))
-	mux.HandleFunc("GET /api/transactions", middleware.AllowCors(srvHandler.TransactionsHandler))
-	mux.HandleFunc("POST /api/upload", middleware.AllowCors(srvHandler.UploadHandler))
-	mux.HandleFunc("POST /api/alerts/test", middleware.AllowCors(srvHandler.TestAlertHandler))
-	mux.HandleFunc("PUT /api/overrides/{account_number}", middleware.AllowCors(srvHandler.OverrideHandler))
-	mux.HandleFunc("DELETE /api/overrides/{account_number}", middleware.AllowCors(srvHandler.OverrideHandler))
-	mux.HandleFunc("GET /api/config", middleware.AllowCors(srvHandler.ConfigHandler))
-	mux.HandleFunc("POST /api/config", middleware.AllowCors(srvHandler.ConfigHandler))
-	mux.HandleFunc("POST /api/cards", middleware.AllowCors(srvHandler.CardHandler))
-	mux.HandleFunc("DELETE /api/cards/{account_number}", middleware.AllowCors(srvHandler.CardHandler))
-	mux.HandleFunc("OPTIONS /api/status", middleware.AllowCors(srvHandler.HealthHandler))
-	mux.HandleFunc("OPTIONS /api/transactions", middleware.AllowCors(srvHandler.HealthHandler))
-	mux.HandleFunc("OPTIONS /api/upload", middleware.AllowCors(srvHandler.HealthHandler))
-	mux.HandleFunc("OPTIONS /api/alerts/test", middleware.AllowCors(srvHandler.HealthHandler))
-	mux.HandleFunc("OPTIONS /api/overrides/{account_number}", middleware.AllowCors(srvHandler.HealthHandler))
-	mux.HandleFunc("OPTIONS /api/config", middleware.AllowCors(srvHandler.HealthHandler))
-	mux.HandleFunc("OPTIONS /api/cards", middleware.AllowCors(srvHandler.HealthHandler))
-	mux.HandleFunc("OPTIONS /api/cards/{account_number}", middleware.AllowCors(srvHandler.HealthHandler))
+	mux.HandleFunc("GET /api/health", srvHandler.HealthHandler)
+	mux.HandleFunc("GET /api/status", srvHandler.StatusHandler)
+	mux.HandleFunc("GET /api/transactions", srvHandler.TransactionsHandler)
+	mux.HandleFunc("POST /api/upload", srvHandler.UploadHandler)
+	mux.HandleFunc("POST /api/alerts/test", srvHandler.TestAlertHandler)
+	mux.HandleFunc("PUT /api/overrides/{account_number}", srvHandler.OverrideHandler)
+	mux.HandleFunc("DELETE /api/overrides/{account_number}", srvHandler.OverrideHandler)
+	mux.HandleFunc("GET /api/config", srvHandler.ConfigHandler)
+	mux.HandleFunc("POST /api/config", srvHandler.ConfigHandler)
+	mux.HandleFunc("POST /api/cards", srvHandler.CardHandler)
+	mux.HandleFunc("DELETE /api/cards/{account_number}", srvHandler.CardHandler)
 
-	// Create HTTP Server with request logging
+	// Middleware stack
+	stack := middleware.Chain(
+		middleware.RequestLogger,
+		middleware.AllowCors,
+	)
+
+	// Create HTTP Server
 	srv := &http.Server{
 		Addr:         ":8080",
-		Handler:      middleware.RequestLogger(mux),
+		Handler:      stack(mux),
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
 
-	// Start Alert Scheduler
-	go scheduler.StartAlertScheduler(store, cfg, mail)
+	// Root context for cancellation
+	rootCtx, cancel := context.WithCancel(context.Background())
 
-	slog.Info("Server starting", "addr", ":8080")
-	if err := srv.ListenAndServe(); err != nil {
-		slog.Error("Server failed", "error", err)
-		os.Exit(1)
+	// Start Alert Scheduler
+	go scheduler.StartAlertScheduler(rootCtx, store, cfg, mail)
+
+	go func() {
+		slog.Info("Server starting", "addr", ":8080")
+		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("Server failed", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	// Graceful shutdown
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	slog.Info("Graceful shutdown initiated")
+
+	// Stop scheduler
+	cancel()
+
+	// Shutdown HTTP server
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("Server shutdown failed", "error", err)
+	} else {
+		slog.Info("Server exited gracefully")
 	}
 }

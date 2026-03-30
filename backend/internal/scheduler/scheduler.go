@@ -1,7 +1,7 @@
-// Package scheduler runs periodic background tasks such as alert checks.
 package scheduler
 
 import (
+	"context"
 	"log/slog"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 
 // StartAlertScheduler runs CheckAndSendAlerts daily at 7:00 AM in the configured timezone.
 // It blocks indefinitely and should be called in a goroutine.
-func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
+func StartAlertScheduler(ctx context.Context, s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 	loc, err := time.LoadLocation(cfg.Timezone)
 	if err != nil {
 		slog.Warn("Failed to load timezone, defaulting to UTC", "timezone", cfg.Timezone, "error", err)
@@ -33,12 +33,16 @@ func StartAlertScheduler(s *store.Store, cfg *config.Config, m *mailer.Mailer) {
 	slog.Info("Alert scheduler started", "timezone", loc.String(), "next_run", nextRun)
 
 	for {
-		<-timer.C
+		select {
+		case <-ctx.Done():
+			slog.Info("Alert scheduler stopping")
+			return
+		case <-timer.C:
+			slog.Info("Running daily alert check")
+			alerts.CheckAndSendAlerts(ctx, s, cfg, m, time.Time{}, false)
 
-		slog.Info("Running daily alert check")
-		alerts.CheckAndSendAlerts(s, cfg, m, time.Time{}, false)
-
-		// Reset for next day
-		timer.Reset(24 * time.Hour)
+			// Reset for next day
+			timer.Reset(24 * time.Hour)
+		}
 	}
 }
