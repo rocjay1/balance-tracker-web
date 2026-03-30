@@ -96,8 +96,9 @@ func CalculatePayment(s *store.Store, card config.CardConfig, refTime time.Time)
 		paymentNeeded = 0
 	}
 
+	refDate := time.Date(year, month, refTime.Day(), 0, 0, 0, 0, time.UTC)
 	dueDate := mkDate(year, month, card.DueDay)
-	if dueDate.Before(refTime) {
+	if dueDate.Before(refDate) {
 		dueDate = dueDate.AddDate(0, 1, 0)
 		dueDate = mkDate(dueDate.Year(), dueDate.Month(), card.DueDay)
 	}

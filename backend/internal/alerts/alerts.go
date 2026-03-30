@@ -36,7 +36,7 @@ func CheckAndSendAlerts(s *store.Store, cfg *config.Config, m *mailer.Mailer, re
 		dueDate := res.DueDate.In(loc)
 		alertThreshold := time.Duration(cfg.AlertDaysBeforeDue) * 24 * time.Hour
 
-		if now.Sub(dueDate) <= alertThreshold && res.PaymentNeeded > 1.0 {
+		if dueDate.Sub(now) <= alertThreshold && res.PaymentNeeded > 1.0 {
 			slog.Info("Alert: Payment due", "card", card.Name, "due_date", res.DueDate.Format("2006-01-02"), "amount", res.PaymentNeeded)
 
 			subject := fmt.Sprintf("Payment Alert: %s Due Soon", card.Name)
